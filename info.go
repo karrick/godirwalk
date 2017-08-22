@@ -100,7 +100,7 @@ func WalkFileInfo(osDirname string, walkFn WalkFileInfoFunc) error {
 		}
 
 		if fi.IsDir() {
-			osChildrenNames, err := childrenFromDirname(osPathname)
+			osChildrenNames, err := ReadDirnames(osPathname, 0)
 			if err != nil {
 				return errors.Wrap(err, "cannot get list of directory children")
 			}
@@ -116,25 +116,4 @@ func WalkFileInfo(osDirname string, walkFn WalkFileInfoFunc) error {
 		}
 	}
 	return nil
-}
-
-// childrenFromDirname returns a lexicographically sorted list of child
-// nodes for the specified directory.
-func childrenFromDirname(osDirname string) ([]string, error) {
-	fh, err := os.Open(osDirname)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot Open")
-	}
-
-	osChildrenNames, err := fh.Readdirnames(0) // 0: read names of all children
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot Readdirnames")
-	}
-
-	// Close the file handle to the open directory without masking possible
-	// previous error value.
-	if er := fh.Close(); err == nil {
-		err = errors.Wrap(er, "cannot Close")
-	}
-	return osChildrenNames, err
 }
