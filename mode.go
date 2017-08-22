@@ -73,7 +73,7 @@ func walk(osDirname string, walkFn WalkFileModeFunc, followSymlinks bool) error 
 	de := &Dirent{Name: "", ModeType: os.ModeDir}
 	queue := []*Dirent{de}
 
-	scratchBuffer := make([]byte, 16*1024)
+	// scratchBuffer := make([]byte, 16*1024)
 
 	// As we enumerate over the queue and encounter a directory, its children
 	// will be added to the work queue.
@@ -128,7 +128,7 @@ func walk(osDirname string, walkFn WalkFileModeFunc, followSymlinks bool) error 
 		}
 
 		if de.ModeType == os.ModeDir {
-			deChildren, err := GetDirectoryEntriesBuffer(osPathname, scratchBuffer)
+			deChildren, err := ReadDirents(osPathname, -1)
 			if err != nil {
 				return errors.Wrap(err, "cannot get list of directory children")
 			}
