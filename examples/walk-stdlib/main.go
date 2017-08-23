@@ -7,7 +7,11 @@ import (
 )
 
 func main() {
-	if err := filepath.Walk(filepath.Clean(os.Args[1]), callback); err != nil {
+	dirname := "."
+	if len(os.Args) > 1 {
+		dirname = os.Args[1]
+	}
+	if err := filepath.Walk(dirname, callback); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

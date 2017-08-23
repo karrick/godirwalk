@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -24,7 +23,7 @@ import (
 // WalkFileMode skips the directory's contents entirely. If the function returns
 // filepath.SkipDir when invoked on a non-directory file system node,
 // WalkFileMode skips the remaining files in the containing directory.
-type WalkFileModeFunc func(osPathname string, mode os.FileMode) error
+type WalkFileModeFunc func(pathname string, mode os.FileMode) error
 
 // WalkFileMode walks the file tree rooted at the specified directory, calling
 // the specified callback function for each file system node in the tree,
@@ -33,10 +32,22 @@ type WalkFileModeFunc func(osPathname string, mode os.FileMode) error
 // large directories this function can be inefficient.
 //
 // This function is often much faster than filepath.Walk because it does not
-// need to os.Stat every node it encounters, but rather gets the file system
+// invoke os.Stat for every node it encounters, but rather gets the file system
 // node type when it reads the parent directory.
-func WalkFileMode(osDirname string, walkFn WalkFileModeFunc) error {
-	return walk(osDirname, walkFn, false)
+func WalkFileMode(pathname string, walkFn WalkFileModeFunc) error {
+	pathname = filepath.Clean(pathname)
+
+	// Ensure specified pathname is a directory.
+	fi, err := os.Stat(pathname)
+	if err != nil {
+		return errors.Wrap(err, "cannot Stat")
+	}
+
+	err = walker(pathname, fi.Mode()&os.ModeType, false, walkFn)
+	if err == filepath.SkipDir {
+		return nil
+	}
+	return err
 }
 
 // WalkFileModeFollowSymlinks walks the file tree rooted at the specified
@@ -46,99 +57,84 @@ func WalkFileMode(osDirname string, walkFn WalkFileModeFunc) error {
 // that for very large directories this function can be inefficient.
 //
 // This function is often much faster than filepath.Walk because it does not
-// need to os.Stat every node it encounters, but rather gets the file system
-// node type when it reads the parent directory.
+// invoke os.Stat every node it encounters, but rather gets the file system node
+// type when it reads the parent directory.
 //
 // This function also follows symbolic links that point to directories, and
-// ought to be used with caution, as calling it may cause an infinite loop in
-// cases where the file system includes a logical loop of symbolic links.
-func WalkFileModeFollowSymlinks(osDirname string, walkFn WalkFileModeFunc) error {
-	return walk(osDirname, walkFn, true)
-}
+// therefore ought to be used with caution, as calling it may cause an infinite
+// loop in cases where the file system includes a logical loop of symbolic
+// links.
+func WalkFileModeFollowSymlinks(pathname string, walkFn WalkFileModeFunc) error {
+	pathname = filepath.Clean(pathname)
 
-func walk(osDirname string, walkFn WalkFileModeFunc, followSymlinks bool) error {
-	osDirname = filepath.Clean(osDirname)
-
-	// Ensure parameter is a directory
-	fi, err := os.Stat(osDirname)
+	// Ensure specified pathname is a directory.
+	fi, err := os.Stat(pathname)
 	if err != nil {
 		return errors.Wrap(err, "cannot read node")
 	}
-	if !fi.IsDir() {
-		return errors.Errorf("cannot walk non directory: %q", osDirname)
+
+	err = walker(pathname, fi.Mode()&os.ModeType, true, walkFn)
+	if err == filepath.SkipDir {
+		return nil
+	}
+	return err
+}
+
+func walker(osPathname string, modeType os.FileMode, followSymlinks bool, walkFn WalkFileModeFunc) error {
+	err := walkFn(osPathname, modeType)
+	if err != nil {
+		if err != filepath.SkipDir {
+			return errors.Wrap(err, "WalkFileModeFunc") // wrap error returned by walkFn
+		}
+		return err
 	}
 
-	// Initialize a work queue with the empty string, which signifies the
-	// starting directory itself.
-	de := &Dirent{Name: "", ModeType: os.ModeDir}
-	queue := []*Dirent{de}
-
-	// scratchBuffer := make([]byte, 16*1024)
-
-	// As we enumerate over the queue and encounter a directory, its children
-	// will be added to the work queue.
-	for len(queue) > 0 {
-		// Unshift a pathname from the queue (breadth-first traversal of
-		// hierarchy)
-		de = queue[0]
-		queue[0] = nil
-		queue = queue[1:]
-
-		osPathname := filepath.Join(osDirname, de.Name)
-
-		if err = walkFn(osPathname, de.ModeType); err != nil {
-			if err == filepath.SkipDir {
-				if de.ModeType == os.ModeSymlink {
-					// Resolve symbolic link referent to determine whether node
-					// is directory or not.
-					fi, err = os.Stat(osPathname)
-					if err != nil {
-						return errors.Wrap(err, "cannot stat")
-					}
-					if fi.IsDir() {
-						de.ModeType = os.ModeDir
-					}
-				}
-				// If current node is directory, then skip it; otherwise, skip
-				// all nodes in the same parent directory.
-				if de.ModeType != os.ModeDir {
-					// Consume nodes from queue while they have the same parent
-					// as the current node.
-					osParent := filepath.Dir(osPathname) + osPathSeparator
-					for len(queue) > 0 && strings.HasPrefix(queue[0].Name, osParent) {
-						queue[0], queue = nil, queue[1:] // drop sibling entry from queue
-					}
-				}
-
-				continue
-			}
-			return errors.Wrap(err, "DirWalkFileModeFunc") // wrap error returned by walkFn
+	if followSymlinks && modeType&os.ModeSymlink != 0 {
+		// Resolve symbolic link referent to determine whether referent is
+		// directory or not.
+		fi, err := os.Stat(osPathname)
+		if err != nil {
+			return errors.Wrap(err, "cannot Stat")
 		}
+		modeType = fi.Mode() & os.ModeType
+	}
 
-		if followSymlinks && de.ModeType == os.ModeSymlink {
-			// Resolve symbolic link referent to determine whether node
-			// is directory or not.
-			fi, err = os.Stat(osPathname)
-			if err != nil {
-				return errors.Wrap(err, "cannot stat")
-			}
-			if fi.IsDir() {
-				de.ModeType = os.ModeDir
-			}
-		}
+	if modeType&os.ModeDir == 0 {
+		return nil
+	}
 
-		if de.ModeType == os.ModeDir {
-			deChildren, err := ReadDirents(osPathname, -1)
-			if err != nil {
-				return errors.Wrap(err, "cannot get list of directory children")
+	// If get here, then specified pathname refers to a directory.
+	deChildren, err := ReadDirents(osPathname, 0)
+	if err != nil {
+		return errors.Wrap(err, "cannot ReadDirents")
+	}
+	sort.Sort(deChildren)
+
+	for _, deChild := range deChildren {
+		osChildname := filepath.Join(osPathname, deChild.Name)
+		err = walker(osChildname, deChild.ModeType, followSymlinks, walkFn)
+		if err != nil {
+			if err != filepath.SkipDir {
+				return err
 			}
-			sort.Sort(deChildren)
-			for _, deChild := range deChildren {
-				deChild.Name = filepath.Join(de.Name, deChild.Name)
-				queue = append(queue, deChild)
+			// If skipdir on a directory, stop processing that directory, but
+			// continue to siblings. If skipdir on a non-directory, stop
+			// processing siblings.
+			if deChild.ModeType&os.ModeSymlink != 0 {
+				// Resolve symbolic link referent to determine whether node
+				// is directory or not.
+				fi, err := os.Stat(osChildname)
+				if err != nil {
+					return errors.Wrap(err, "cannot Stat")
+				}
+				deChild.ModeType = fi.Mode() & os.ModeType
+			}
+			if deChild.ModeType&os.ModeDir == 0 {
+				// If not directory, return immediately, thus skipping remainder
+				// of siblings.
+				return nil
 			}
 		}
 	}
-	de = nil
 	return nil
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/karrick/godirwalk"
 )
@@ -13,7 +12,7 @@ func main() {
 	if len(os.Args) > 1 {
 		dirname = os.Args[1]
 	}
-	if err := godirwalk.WalkFileMode(filepath.Clean(dirname), callback); err != nil {
+	if err := godirwalk.WalkFileMode(dirname, callback); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
