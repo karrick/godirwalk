@@ -78,7 +78,7 @@ func helperFilepathWalk(t *testing.T, osDirname string) []string {
 		if filepath.Base(osPathname) == "skip" {
 			return filepath.SkipDir
 		}
-		entries = append(entries, osPathname)
+		entries = append(entries, filepath.ToSlash(osPathname))
 		return nil
 	})
 	if err != nil {
@@ -93,7 +93,7 @@ func helperGodirwalkWalk(t *testing.T, osDirname string) []string {
 		if filepath.Base(osPathname) == "skip" {
 			return filepath.SkipDir
 		}
-		entries = append(entries, osPathname)
+		entries = append(entries, filepath.ToSlash(osPathname))
 		return nil
 	})
 	if err != nil {
