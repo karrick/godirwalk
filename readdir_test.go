@@ -78,6 +78,9 @@ func helperFilepathWalk(t *testing.T, osDirname string) []string {
 		if filepath.Base(osPathname) == "skip" {
 			return filepath.SkipDir
 		}
+		// filepath.Walk invokes callback function with a slashed version of the
+		// pathname, while godirwalk invokes callback function with the
+		// os-specific pathname separator.
 		entries = append(entries, filepath.ToSlash(osPathname))
 		return nil
 	})
@@ -89,10 +92,13 @@ func helperFilepathWalk(t *testing.T, osDirname string) []string {
 
 func helperGodirwalkWalk(t *testing.T, osDirname string) []string {
 	var entries []string
-	err := godirwalk.WalkFileMode(osDirname, func(osPathname string, _ os.FileMode) error {
+	err := godirwalk.Walk(osDirname, func(osPathname string, _ os.FileMode) error {
 		if filepath.Base(osPathname) == "skip" {
 			return filepath.SkipDir
 		}
+		// filepath.Walk invokes callback function with a slashed version of the
+		// pathname, while godirwalk invokes callback function with the
+		// os-specific pathname separator.
 		entries = append(entries, filepath.ToSlash(osPathname))
 		return nil
 	})

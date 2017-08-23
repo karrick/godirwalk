@@ -13,6 +13,28 @@ clients need to branch based on file system node type, and, that
 information is already provided by the system call used to read a
 directory's children nodes.
 
+There are two major differences and one minor difference to the
+operation of `filepath.Walk` and the directory traversal algorithm in
+this library.
+
+First, `filepath.Walk` invokes the callback function with a slashed
+version of the pathname regardless of the os-specific path separator,
+while godirwalk invokes callback function with the os-specific
+pathname separator.
+
+Second, while `filepath.Walk` invokes callback function with the
+`os.FileInfo` for every node, this library invokes the callback
+function with the `os.FileMode` set to the type of file system node it
+is, namely, by masking the file system mode with `os.ModeType`. It
+does this because this eliminates the need to invoke `os.Stat` on
+every file system node. On the occassion that the callback function
+needs the full stat information, it can call `os.Stat` when required.
+
+Third, since this library does not invoke `os.Stat` on every node,
+there is no possible error event for the callback function to filter
+on. The third argument in the callback function signature for the stat
+error is no longer necessary.
+
 ## Usage
 
 Documentation is available via
@@ -34,7 +56,7 @@ func main() {
 	if len(os.Args) > 1 {
 		dirname = os.Args[1]
 	}
-	err := godirwalk.WalkFileMode(filepath.Clean(dirname), callback)
+	err := godirwalk.Walk(filepath.Clean(dirname), callback)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s", err)
 		os.Exit(1)
