@@ -1,6 +1,13 @@
 # godirwalk
 
-`godirwalk` is a library for walking the file system.
+`godirwalk` is a library for walking a directory tree on a file system. It
+runs on unix like operating systems and Windows. When compared against
+`filepath.Walk` in benchmarks, it runs up to ten times the speed on unix, and
+about four times the speed on Windows.
+
+More importantly, unlike when using `filepath.Walk` on Windows, it doesn't
+result in an infinite loop when walking a directory tree hierarchy that
+contains a symbolic link loop.
 
 ## Description
 
