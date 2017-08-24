@@ -8,7 +8,7 @@ import (
 	"github.com/karrick/godirwalk"
 )
 
-func helperFilepathWalk(t *testing.T, osDirname string) []string {
+func helperFilepathWalk(tb testing.TB, osDirname string) []string {
 	var entries []string
 	err := filepath.Walk(osDirname, func(osPathname string, _ os.FileInfo, err error) error {
 		if err != nil {
@@ -24,12 +24,12 @@ func helperFilepathWalk(t *testing.T, osDirname string) []string {
 		return nil
 	})
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	return entries
 }
 
-func helperGodirwalkWalk(t *testing.T, osDirname string) []string {
+func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
 	var entries []string
 	err := godirwalk.Walk(osDirname, func(osPathname string, _ os.FileMode) error {
 		if filepath.Base(osPathname) == "skip" {
@@ -42,7 +42,7 @@ func helperGodirwalkWalk(t *testing.T, osDirname string) []string {
 		return nil
 	})
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	return entries
 }
@@ -84,4 +84,28 @@ func TestWalkSkipDir(t *testing.T) {
 	t.Run("SkipDirUnderRoot", func(t *testing.T) {
 		test(t, "testdata/dir2")
 	})
+}
+
+func BenchmarkFilepathWalk(b *testing.B) {
+	if testing.Short() {
+		b.Skip("Skipping benchmark using user's Go source directory")
+	}
+
+	prefix := filepath.Join(os.Getenv("GOPATH"), "src")
+
+	for i := 0; i < b.N; i++ {
+		_ = helperFilepathWalk(b, prefix)
+	}
+}
+
+func BenchmarkGoDirWalk(b *testing.B) {
+	if testing.Short() {
+		b.Skip("Skipping benchmark using user's Go source directory")
+	}
+
+	prefix := filepath.Join(os.Getenv("GOPATH"), "src")
+
+	for i := 0; i < b.N; i++ {
+		_ = helperGodirwalkWalk(b, prefix)
+	}
 }

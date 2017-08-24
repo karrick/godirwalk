@@ -15,7 +15,7 @@ import (
 func readdirnames(osDirname string, max int) ([]string, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot open directory")
+		return nil, errors.Wrap(err, "cannot Open")
 	}
 
 	entries, err := dh.Readdirnames(max)
@@ -32,7 +32,7 @@ func readdirnames(osDirname string, max int) ([]string, error) {
 func readdirents(osDirname string, max int) (Dirents, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot open directory")
+		return nil, errors.Wrap(err, "cannot Open")
 	}
 
 	fileinfos, err := dh.Readdir(max)

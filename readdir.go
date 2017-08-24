@@ -15,14 +15,14 @@ type Dirent struct {
 	// Go's runtime already gives us architecture independent file modes, as
 	// discussed in `os/types.go`:
 	//
-	//    Go's runtime FileMode type has same definition on all systems, so
-	//    that information about files can be moved from one system to
-	//    another portably.
+	//    Go's runtime FileMode type has same definition on all systems, so that
+	//    information about files can be moved from one system to another
+	//    portably.
 	ModeType os.FileMode
 }
 
-// Dirents represents a slice of direntType pointers, which are sortable by
-// name. This type satisfies the `sort.Sortable` interface.
+// Dirents represents a slice of Dirent pointers, which are sortable by
+// name. This type satisfies the `sort.Interface` interface.
 type Dirents []*Dirent
 
 // Len returns the count of Dirent structures in the slice.

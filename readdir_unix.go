@@ -18,7 +18,7 @@ const bufsize = 16 * 1024
 func readdirents(osDirname string, max int) (Dirents, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot open directory")
+		return nil, errors.Wrap(err, "cannot Open")
 	}
 
 	var entries Dirents

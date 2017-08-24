@@ -9,20 +9,19 @@ import (
 )
 
 // WalkFunc is the type of the function called for each file system node visited
-// by WalkFileMode. The path argument contains the argument to WalkFileMode as a
-// prefix; that is, if WalkFileMode is called with "dir", which is a directory
-// containing the file "a", the walk function will be called with the argument
-// "dir/a", using the correct os.PathSeparator for the Go Operating System
-// architecture, GOOS. The mode argument is the os.FileMode for the named path,
-// masked to the bits that identify the file system node type, i.e.,
-// os.ModeType.
+// by Walk. The path argument contains the argument to Walk as a prefix; that
+// is, if Walk is called with "dir", which is a directory containing the file
+// "a", the provided WalkFunc will be invoked with the argument "dir/a", using
+// the correct os.PathSeparator for the Go Operating System architecture,
+// GOOS. The mode argument is the os.FileMode for the named path, masked to the
+// bits that identify the file system node type, i.e., os.ModeType.
 //
 // If an error is returned by the walk function, processing stops. The sole
 // exception is when the function returns the special value filepath.SkipDir. If
-// the function returns filepath.SkipDir when invoked on a directory,
-// WalkFileMode skips the directory's contents entirely. If the function returns
-// filepath.SkipDir when invoked on a non-directory file system node,
-// WalkFileMode skips the remaining files in the containing directory.
+// the function returns filepath.SkipDir when invoked on a directory, Walk skips
+// the directory's contents entirely. If the function returns filepath.SkipDir
+// when invoked on a non-directory file system node, Walk skips the remaining
+// files in the containing directory.
 type WalkFunc func(osPathname string, mode os.FileMode) error
 
 // Walk walks the file tree rooted at the specified directory, calling the
@@ -32,8 +31,8 @@ type WalkFunc func(osPathname string, mode os.FileMode) error
 // directories this function can be inefficient.
 //
 // This function is often much faster than filepath.Walk because it does not
-// invoke os.Stat for every node it encounters, but rather gets the file system
-// node type when it reads the parent directory.
+// invoke os.Stat for every node it encounters, but rather obtains the file
+// system node type when it reads the parent directory.
 //
 //    func main() {
 //    	dirname := "."
@@ -73,8 +72,8 @@ func Walk(pathname string, walkFn WalkFunc) error {
 // for very large directories this function can be inefficient.
 //
 // This function is often much faster than filepath.Walk because it does not
-// invoke os.Stat every node it encounters, but rather gets the file system node
-// type when it reads the parent directory.
+// invoke os.Stat every node it encounters, but rather obtains the file system
+// node type when it reads the parent directory.
 //
 // This function also follows symbolic links that point to directories, and
 // therefore ought to be used with caution, as calling it may cause an infinite
@@ -86,7 +85,7 @@ func WalkFollowSymlinks(pathname string, walkFn WalkFunc) error {
 	// Ensure specified pathname is a directory.
 	fi, err := os.Stat(pathname)
 	if err != nil {
-		return errors.Wrap(err, "cannot read node")
+		return errors.Wrap(err, "cannot Stat")
 	}
 
 	err = walker(pathname, fi.Mode()&os.ModeType, true, walkFn)
