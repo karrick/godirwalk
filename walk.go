@@ -34,6 +34,22 @@ type WalkFunc func(osPathname string, mode os.FileMode) error
 // This function is often much faster than filepath.Walk because it does not
 // invoke os.Stat for every node it encounters, but rather gets the file system
 // node type when it reads the parent directory.
+//
+//    func main() {
+//    	dirname := "."
+//    	if len(os.Args) > 1 {
+//    		dirname = os.Args[1]
+//    	}
+//    	if err := godirwalk.Walk(dirname, callback); err != nil {
+//    		fmt.Fprintf(os.Stderr, "%s\n", err)
+//    		os.Exit(1)
+//    	}
+//    }
+//
+//    func callback(osPathname string, mode os.FileMode) error {
+//    	fmt.Printf("%s %s\n", mode, osPathname)
+//    	return nil
+//    }
 func Walk(pathname string, walkFn WalkFunc) error {
 	pathname = filepath.Clean(pathname)
 
@@ -84,7 +100,7 @@ func walker(osPathname string, modeType os.FileMode, followSymlinks bool, walkFn
 	err := walkFn(osPathname, modeType)
 	if err != nil {
 		if err != filepath.SkipDir {
-			return errors.Wrap(err, "WalkFileModeFunc") // wrap error returned by walkFn
+			return errors.Wrap(err, "WalkFunc") // wrap error returned by walkFn
 		}
 		return err
 	}

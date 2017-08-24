@@ -2,10 +2,7 @@ package godirwalk
 
 import (
 	"os"
-	"path/filepath"
 )
-
-const osPathSeparator = string(filepath.Separator)
 
 // Dirent stores the name and file system mode type of discovered file system
 // entries.
@@ -41,13 +38,31 @@ func (l Dirents) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 // ReadDirents returns a slice of pointers to Dirent structures, representing
 // the file system children of the specified directory. If the specified
 // directory is a symbolic link, it will be resolved.
-func ReadDirents(osDirname string, n int) (Dirents, error) {
-	return readdirents(osDirname, n)
+//
+//    children, err := godirwalk.ReadDirents(osPathname, 0)
+//    if err != nil {
+//    	return nil, errors.Wrap(err, "cannot get list of directory children")
+//    }
+//    sort.Sort(children)
+//    for _, child := range children {
+//        fmt.Printf("%s %s\n", child.ModeType, child.Name)
+//    }
+func ReadDirents(osDirname string, max int) (Dirents, error) {
+	return readdirents(osDirname, max)
 }
 
 // ReadDirnames returns a slice of strings, representing the file system
 // children of the specified directory. If the specified directory is a symbolic
 // link, it will be resolved.
-func ReadDirnames(osDirname string, n int) ([]string, error) {
-	return readdirnames(osDirname, n)
+//
+//    children, err := godirwalk.ReadDirnames(osPathname, 0)
+//    if err != nil {
+//    	return nil, errors.Wrap(err, "cannot get list of directory children")
+//    }
+//    sort.Strings(children)
+//    for _, child := range children {
+//        fmt.Printf("%s\n", child)
+//    }
+func ReadDirnames(osDirname string, max int) ([]string, error) {
+	return readdirnames(osDirname, max)
 }

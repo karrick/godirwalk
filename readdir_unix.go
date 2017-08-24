@@ -114,8 +114,8 @@ outerLoop:
 	return entries, nil
 }
 
-func readdirnames(osDirname string, n int) ([]string, error) {
-	des, err := readdirents(osDirname, n)
+func readdirnames(osDirname string, max int) ([]string, error) {
+	des, err := readdirents(osDirname, max)
 	if err != nil {
 		return nil, err
 	}

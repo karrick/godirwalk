@@ -56,7 +56,7 @@ func main() {
 	if len(os.Args) > 1 {
 		dirname = os.Args[1]
 	}
-	err := godirwalk.Walk(filepath.Clean(dirname), callback)
+	err := godirwalk.Walk(dirname, callback)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s", err)
 		os.Exit(1)
