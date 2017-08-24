@@ -111,11 +111,16 @@ func walker(osPathname string, modeType os.FileMode, followSymlinks bool, walkFn
 		if !followSymlinks {
 			return nil
 		}
-		fi, err := os.Stat(osPathname)
-		if err != nil {
-			return errors.Wrap(err, "cannot Stat")
+		// Only need to Stat entry if platform did not already have os.ModeDir
+		// set, on unix like operating systems. (This guard eliminates extra
+		// Stat check on Windows.)
+		if modeType&os.ModeDir == 0 {
+			fi, err := os.Stat(osPathname)
+			if err != nil {
+				return errors.Wrap(err, "cannot Stat")
+			}
+			modeType = fi.Mode() & os.ModeType
 		}
-		modeType = fi.Mode() & os.ModeType
 	}
 
 	if modeType&os.ModeDir == 0 {
