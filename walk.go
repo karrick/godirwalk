@@ -104,9 +104,13 @@ func walker(osPathname string, modeType os.FileMode, followSymlinks bool, walkFn
 		return err
 	}
 
-	if followSymlinks && modeType&os.ModeSymlink != 0 {
-		// Resolve symbolic link referent to determine whether referent is
-		// directory or not.
+	// On some platforms, an entry can have more than one mode type bit set.
+	// For instance, it could have both the symlink bit and the directory bit
+	// set indicating it's a symlink to a directory.
+	if modeType&os.ModeSymlink != 0 {
+		if !followSymlinks {
+			return nil
+		}
 		fi, err := os.Stat(osPathname)
 		if err != nil {
 			return errors.Wrap(err, "cannot Stat")
