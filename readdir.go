@@ -21,6 +21,13 @@ type Dirent struct {
 	ModeType os.FileMode
 }
 
+// IsDir returns true if and only if the Dirent represents a file system
+// directory. Not that some operating systems, more than one file mode bit may
+// be set for a node. For instance, on some operating systems, a symbolic link
+// that points to a directory will have both the directory and the symbolic link
+// bits set.
+func (de Dirent) IsDir() bool { return de.ModeType&os.ModeDir != 0 }
+
 // Dirents represents a slice of Dirent pointers, which are sortable by
 // name. This type satisfies the `sort.Interface` interface.
 type Dirents []*Dirent
@@ -35,9 +42,9 @@ func (l Dirents) Less(i, j int) bool { return l[i].Name < l[j].Name }
 // Swap exchanges the two Dirent entries specified by the two provided indexes.
 func (l Dirents) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 
-// ReadDirents returns a slice of pointers to Dirent structures, representing
-// the file system children of the specified directory. If the specified
-// directory is a symbolic link, it will be resolved.
+// ReadDirents returns a sortable slice of pointers to Dirent structures,
+// representing the immediate descendents of the specified directory. If the
+// specified directory is a symbolic link, it will be resolved.
 //
 //    children, err := godirwalk.ReadDirents(osPathname, 0)
 //    if err != nil {
@@ -51,9 +58,9 @@ func ReadDirents(osDirname string, max int) (Dirents, error) {
 	return readdirents(osDirname, max)
 }
 
-// ReadDirnames returns a slice of strings, representing the file system
-// children of the specified directory. If the specified directory is a symbolic
-// link, it will be resolved.
+// ReadDirnames returns a slice of strings, representing the immediate
+// descendents of the specified directory. If the specified directory is a
+// symbolic link, it will be resolved.
 //
 //    children, err := godirwalk.ReadDirnames(osPathname, 0)
 //    if err != nil {

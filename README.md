@@ -1,77 +1,129 @@
 # godirwalk
 
-`godirwalk` is a library for walking a directory tree on a file system. It
-runs on unix like operating systems and Windows. When compared against
-`filepath.Walk` in benchmarks, it runs up to ten times the speed on unix, and
-about four times the speed on Windows.
+`godirwalk` is a library for traversing a directory tree on a file
+system.
 
-More importantly, unlike when using `filepath.Walk` on Windows, it doesn't
-result in an infinite loop when walking a directory tree hierarchy that
-contains a symbolic link loop.
+In short, why do I use this library?
 
-## Description
+1. It's faster than `filepath.Walk`.
+1. It's more correct on Windows than `filepath.Walk`.
+1. It's more easy to use than `filepath.Walk`.
+1. It's more flexible than `filepath.Walk`.
 
-The Go standard library provides a flexible function for traversing a
-file system directory tree. However it invokes `os.Stat` on every file
-system node encountered in order to provide the file info data
-structure, i.e. `os.FileInfo`, to the upstream client. For many uses
-the `os.Stat` is needless and adversely impacts performance. Many
-clients need to branch based on file system node type, and, that
-information is already provided by the system call used to read a
-directory's children nodes.
+## Usage Example
 
-There are two major differences and one minor difference to the
-operation of `filepath.Walk` and the directory traversal algorithm in
-this library.
+This library will normalize the provided top level directory name
+based on the os-specific path separator by calling `filepath.Clean` on
+its first argument. However it always provides the pathname created by
+using the correct os-specific path separator when invoking the
+provided callback function.
 
-First, `filepath.Walk` invokes the callback function with a slashed
-version of the pathname regardless of the os-specific path separator,
-while godirwalk invokes callback function with the os-specific
-pathname separator.
+```Go
+    dirname := "some/directory/root"
+    err := godirwalk.Walk(dirname, func(osPathname string, mode os.FileMode) error {
+        fmt.Printf("%s %s\n", mode, osPathname)
+        return nil
+    })
+```
 
-Second, while `filepath.Walk` invokes callback function with the
-`os.FileInfo` for every node, this library invokes the callback
-function with the `os.FileMode` set to the type of file system node it
-is, namely, by masking the file system mode with `os.ModeType`. It
-does this because this eliminates the need to invoke `os.Stat` on
-every file system node. On the occassion that the callback function
-needs the full stat information, it can call `os.Stat` when required.
-
-Third, since this library does not invoke `os.Stat` on every node,
-there is no possible error event for the callback function to filter
-on. The third argument in the callback function signature for the stat
-error is no longer necessary.
-
-## Usage
+This library not only provides functions for traversing a file system
+directory tree, but also for obtaining a list of immediate descendents
+of a particular directory, typically much more quickly than using
+`os.ReadDir` or `os.ReadDirnames`.
 
 Documentation is available via
 [![GoDoc](https://godoc.org/github.com/karrick/godirwalk?status.svg)](https://godoc.org/github.com/karrick/godirwalk).
 
-```Go
-package main
+## Description
 
-import (
-	"fmt"
-	"os"
-	"path/filepath"
+Here's why I use `godirwalk` in preference to `filepath.Walk`,
+`os.ReadDir`, and `os.ReadDirnames`.
 
-	"github.com/karrick/godirwalk"
-)
+### It's faster than `filepath.Walk`
 
-func main() {
-	dirname := "."
-	if len(os.Args) > 1 {
-		dirname = os.Args[1]
-	}
-	err := godirwalk.Walk(dirname, callback)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s", err)
-		os.Exit(1)
-	}
-}
+When compared against `filepath.Walk` in benchmarks, it has been
+observed to run up to ten times the speed on unix, comparable to the
+speed of the unix `find` utility, and about four times the speed on
+Windows.
 
-func callback(osPathname string, mode os.FileMode) error {
-	fmt.Printf("%s %s\n", mode, osPathname)
-	return nil
-}
-```
+How does it obtain this performance boost? Primarily by not invoking
+`os.Stat` on every file system node it encounters.
+
+While traversing a file system directory tree, `filepath.Walk` obtains
+the list of immediate descendents of a directory, and throws away the
+file system node type information provided by the operating system
+that comes with the node's name. Then, immediately prior to invoking
+the callback function, `filepath.Walk` invokes `os.Stat` for each
+node, and passes the returned `os.FileInfo` information to the
+callback.
+
+While the `os.FileInfo` information provided by `os.Stat` is extremely
+helpful--and even includes the `os.FileMode` data--providing it
+requires an additional system call for each node.
+
+Because most callbacks only care about what the node type is, this
+library does not throw that information away, but rather provides that
+information to the callback function in the form of its `os.FileMode`
+value. If the callback does care about a particular node's entire
+`os.FileInfo` data structure, the callback can easiy invoke `os.Stat`
+when needed, and only when needed.
+
+### It's more correct on Windows than `filepath.Walk`
+
+I did not previously care about this either, but humor me. We all love
+how we can write once and run everywhere. It is essential for the
+language's adoption, growth, and success, that the software we create
+can run unmodified on both on unix like operating systems and on
+Windows.
+
+When the traversed file system has a loop caused by symbolic links to
+directories, on Windows `filepath.Walk` will continue following
+directory symbolic links, even though it is not supposed to,
+eventually causing `filepath.Walk` to return an error when the
+pathname gets too long from concatenating the directories in the loop
+onto the pathname of the file system node. While this is clearly not
+intentional, until it is fixed in the standard library, it presents a
+compatibility problem.
+
+This library correctly identifies symbolic links that point to
+directories and will only follow them when this library's
+`WalkFollowSymbolicLinks` function is used. Behavior on Windows and
+unix like operating systems is identical.
+
+### It's more easy to use than `filepath.Walk`
+
+Since this library does not invoke `os.Stat` on every file system node
+it encounters, there is no possible error event for the callback
+function to filter on. The third argument in the `filepath.WalkFunc`
+function signature to pass the error from `os.Stat` to the callback
+function is no longer necessary, and thus eliminated from signature of
+the callback function from this library.
+
+Also, `filepath.Walk` invokes the callback function with a slashed
+version of the pathname regardless of the os-specific path
+separator. This library invokes callback function with the os-specific
+pathname separator, obviating a call to `filepath.Clean` for each node
+in the callback function, prior to actually using the provided
+pathname.
+
+In other words, even on Windows, `filepath.Walk` will invoke the
+callback with `some/path/to/foo.txt`, requiring well written clients
+to perform pathname normalization for every file prior to working with
+the specified file. In truth, many clients developed on unix and not
+tested on Windows neglect this difference, and will result in software
+bugs when running on Windows. This library however would invoke the
+callback function with `some\path\to\foo.txt` for the same file,
+eliminating the need to normalize the pathname by the client, and
+lessen the likelyhood that a client will work on unix but not on
+Windows.
+
+### It's more flexible than `filepath.Walk`
+
+The `filepath.Walk` function attempts to ignore the problem posed by
+file system directory loops created by symbolic links. I say "attempts
+to" because it does follow symbolic links to directories on Windows,
+causing other problems. Even so, there are times when following
+symbolic links while traversing a file system directory tree is
+desired, and this library allows that by providing the
+`WalkFollowSymbolicLinks` function when the upstream client requires
+the functionality.

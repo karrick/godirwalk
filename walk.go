@@ -65,11 +65,11 @@ func Walk(pathname string, walkFn WalkFunc) error {
 	return err
 }
 
-// WalkFollowSymlinks walks the file tree rooted at the specified directory,
-// calling the specified callback function for each file system node in the
-// tree, including root, symbolic links, and other node types. The nodes are
-// walked in lexical order, which makes the output deterministic but means that
-// for very large directories this function can be inefficient.
+// WalkFollowSymbolicLinks walks the file tree rooted at the specified
+// directory, calling the specified callback function for each file system node
+// in the tree, including root, symbolic links, and other node types. The nodes
+// are walked in lexical order, which makes the output deterministic but means
+// that for very large directories this function can be inefficient.
 //
 // This function is often much faster than filepath.Walk because it does not
 // invoke os.Stat every node it encounters, but rather obtains the file system
@@ -79,7 +79,23 @@ func Walk(pathname string, walkFn WalkFunc) error {
 // therefore ought to be used with caution, as calling it may cause an infinite
 // loop in cases where the file system includes a logical loop of symbolic
 // links.
-func WalkFollowSymlinks(pathname string, walkFn WalkFunc) error {
+//
+//    func main() {
+//    	dirname := "."
+//    	if len(os.Args) > 1 {
+//    		dirname = os.Args[1]
+//    	}
+//    	if err := godirwalk.WalkFollowSymbolicLinks(dirname, callback); err != nil {
+//    		fmt.Fprintf(os.Stderr, "%s\n", err)
+//    		os.Exit(1)
+//    	}
+//    }
+//
+//    func callback(osPathname string, mode os.FileMode) error {
+//    	fmt.Printf("%s %s\n", mode, osPathname)
+//    	return nil
+//    }
+func WalkFollowSymbolicLinks(pathname string, walkFn WalkFunc) error {
 	pathname = filepath.Clean(pathname)
 
 	// Ensure specified pathname is a directory.
