@@ -10,11 +10,11 @@ import (
 
 func helperFilepathWalk(tb testing.TB, osDirname string) []string {
 	var entries []string
-	err := filepath.Walk(osDirname, func(osPathname string, _ os.FileInfo, err error) error {
+	err := filepath.Walk(osDirname, func(osPathname string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if filepath.Base(osPathname) == "skip" {
+		if info.Name() == "skip" {
 			return filepath.SkipDir
 		}
 		// filepath.Walk invokes callback function with a slashed version of the
@@ -31,8 +31,8 @@ func helperFilepathWalk(tb testing.TB, osDirname string) []string {
 
 func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
 	var entries []string
-	err := godirwalk.Walk(osDirname, func(osPathname string, _ os.FileMode) error {
-		if filepath.Base(osPathname) == "skip" {
+	err := godirwalk.Walk(osDirname, func(osPathname string, dirent *godirwalk.Dirent) error {
+		if dirent.Name() == "skip" {
 			return filepath.SkipDir
 		}
 		// filepath.Walk invokes callback function with a slashed version of the

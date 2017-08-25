@@ -27,7 +27,7 @@ provided callback function.
 ```
 
 This library not only provides functions for traversing a file system
-directory tree, but also for obtaining a list of immediate descendents
+directory tree, but also for obtaining a list of immediate descendants
 of a particular directory, typically much more quickly than using
 `os.ReadDir` or `os.ReadDirnames`.
 
@@ -50,7 +50,7 @@ How does it obtain this performance boost? Primarily by not invoking
 `os.Stat` on every file system node it encounters.
 
 While traversing a file system directory tree, `filepath.Walk` obtains
-the list of immediate descendents of a directory, and throws away the
+the list of immediate descendants of a directory, and throws away the
 file system node type information provided by the operating system
 that comes with the node's name. Then, immediately prior to invoking
 the callback function, `filepath.Walk` invokes `os.Stat` for each

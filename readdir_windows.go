@@ -45,7 +45,7 @@ func readdirents(osDirname string, max int) (Dirents, error) {
 
 	entries := make(Dirents, len(fileinfos))
 	for i, v := range fileinfos {
-		entries[i] = &Dirent{Name: v.Name(), ModeType: v.Mode() & os.ModeType}
+		entries[i] = &Dirent{name: v.Name(), modeType: v.Mode() & os.ModeType}
 	}
 
 	return entries, nil

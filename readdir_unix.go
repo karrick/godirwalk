@@ -102,7 +102,7 @@ outerLoop:
 			// system node, and can ignore append, exclusive, temporary, setuid,
 			// setgid, permission bits, and sticky bits, which are coincident to
 			// bits which declare type of the file system node.
-			entries = append(entries, &Dirent{Name: nameString, ModeType: mode & os.ModeType})
+			entries = append(entries, &Dirent{name: nameString, modeType: mode & os.ModeType})
 			if max > 0 && len(entries) == max {
 				break outerLoop
 			}
@@ -121,7 +121,7 @@ func readdirnames(osDirname string, max int) ([]string, error) {
 	}
 	names := make([]string, len(des))
 	for i, v := range des {
-		names[i] = v.Name
+		names[i] = v.name
 	}
 	return names, nil
 }
