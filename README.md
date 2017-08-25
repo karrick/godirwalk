@@ -20,9 +20,11 @@ provided callback function.
 
 ```Go
     dirname := "some/directory/root"
-    err := godirwalk.Walk(dirname, func(osPathname string, de *godirwalk.Dirent) error {
-        fmt.Printf("%s %s\n", de.ModeType(), osPathname)
-        return nil
+    err := godirwalk.Walk(dirname, &godirwalk.Options{
+        Callback: func(osPathname string, de *godirwalk.Dirent) error {
+            fmt.Printf("%s %s\n", de.ModeType(), osPathname)
+            return nil
+        },
     })
 ```
 
@@ -86,9 +88,9 @@ intentional, until it is fixed in the standard library, it presents a
 compatibility problem.
 
 This library correctly identifies symbolic links that point to
-directories and will only follow them when this library's
-`WalkFollowSymbolicLinks` function is used. Behavior on Windows and
-unix like operating systems is identical.
+directories and will only follow them when `ResurseSymbolicLinks` is
+set to true. Behavior on Windows and unix like operating systems is
+identical.
 
 ### It's more easy to use than `filepath.Walk`
 
@@ -122,8 +124,16 @@ Windows.
 The `filepath.Walk` function attempts to ignore the problem posed by
 file system directory loops created by symbolic links. I say "attempts
 to" because it does follow symbolic links to directories on Windows,
-causing other problems. Even so, there are times when following
-symbolic links while traversing a file system directory tree is
-desired, and this library allows that by providing the
-`WalkFollowSymbolicLinks` function when the upstream client requires
-the functionality.
+causing infinite loops, or error messages, and causing behavior to be
+different based on which platform is running. Even so, there are times
+when following symbolic links while traversing a file system directory
+tree is desired, and this library allows that by providing the
+`RecurseSymbolicLinks` option parameter when the upstream client
+requires the functionality.
+
+The `filepath.Walk` function also always sorts the immediate
+descendants of a directory prior to traversing them. While this is
+usually desired for consistent file system traversal, it is not always
+needed, and may impact performance. This library provides the
+`Unsorted` option to skip sorting directory descendants when the order
+of file system traversal is not important for some applications.

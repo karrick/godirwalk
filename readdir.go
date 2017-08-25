@@ -24,11 +24,17 @@ func (de Dirent) Name() string { return de.name }
 func (de Dirent) ModeType() os.FileMode { return de.modeType }
 
 // IsDir returns true if and only if the Dirent represents a file system
-// directory. Not that some operating systems, more than one file mode bit may
-// be set for a node. For instance, on some operating systems, a symbolic link
-// that points to a directory will have both the directory and the symbolic link
-// bits set.
+// directory. Note that on some operating systems, more than one file mode bit
+// may be set for a node. For instance, on Windows, a symbolic link that points
+// to a directory will have both the directory and the symbolic link bits set.
 func (de Dirent) IsDir() bool { return de.modeType&os.ModeDir != 0 }
+
+// IsSymlink returns true if and only if the Dirent represents a file system
+// symbolic link. Note that on some operating systems, more than one file mode
+// bit may be set for a node. For instance, on Windows, a symbolic link that
+// points to a directory will have both the directory and the symbolic link bits
+// set.
+func (de Dirent) IsSymlink() bool { return de.modeType&os.ModeSymlink != 0 }
 
 // Dirents represents a slice of Dirent pointers, which are sortable by
 // name. This type satisfies the `sort.Interface` interface.

@@ -8,6 +8,39 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Options provide parameters for how the Walk function operates.
+type Options struct {
+	// FollowSymbolicLinks specifies whether Walk will follow symbolic links
+	// that refer to directories. When set to false or left as its zero-value,
+	// Walk will still invoke the callback function with symbolic link nodes,
+	// but if the symbolic link refers to a directory, it will not recurse on
+	// that directory. When set to true, Walk will recurse on symbolic links
+	// that refer to a directory.
+	FollowSymbolicLinks bool
+
+	// Unsorted controls whether or not Walk will sort the immediate descendants
+	// of a directory by their relative names prior to visiting each of those
+	// entries.
+	//
+	// When set to false or left at its zero-value, Walk will get the list of
+	// immediate descendants of a particular directory, sort that list by
+	// lexical order of their names, and then visit each node in the list in
+	// sorted order. This will cause Walk to always traverse the same directory
+	// tree in the same order, however may be inefficient for directories with
+	// many immediate descendants.
+	//
+	// When set to true, Walk skips sorting the list of immediate descendants
+	// for a directory, and simply visits each node in the order the operating
+	// system enumerated them. This will be more fast, but with the side effect
+	// that the traversal order may be different from one invocation to the
+	// next.
+	Unsorted bool
+
+	// Callback is the function that Walk will invoke for every file system node
+	// it encounters.
+	Callback WalkFunc
+}
+
 // WalkFunc is the type of the function called for each file system node visited
 // by Walk. The pathname argument will contain the argument to Walk as a prefix;
 // that is, if Walk is called with "dir", which is a directory containing the
@@ -40,92 +73,52 @@ type WalkFunc func(osPathname string, directoryEntry *Dirent) error
 //        if len(os.Args) > 1 {
 //            dirname = os.Args[1]
 //        }
-//        if err := godirwalk.Walk(dirname, callback); err != nil {
+//        err := godirwalk.Walk(dirname, &godirwalk.Options{
+//            Callback: func(osPathname string, de *godirwalk.Dirent) error {
+//                fmt.Printf("%s %s\n", de.ModeType(), osPathname)
+//                return nil
+//            },
+//        })
+//        if err != nil {
 //            fmt.Fprintf(os.Stderr, "%s\n", err)
 //            os.Exit(1)
 //        }
 //    }
-//
-//    func callback(osPathname string, de *godirwalk.Dirent) error {
-//        fmt.Printf("%s %s\n", de.ModeType(), osPathname)
-//        return nil
-//    }
-func Walk(pathname string, walkFn WalkFunc) error {
+func Walk(pathname string, options *Options) error {
 	pathname = filepath.Clean(pathname)
 
-	// Ensure specified pathname is a directory, following symbolic link for top
-	// level pathname.
-	fi, err := os.Stat(pathname)
+	var fi os.FileInfo
+	var err error
+
+	if options.FollowSymbolicLinks {
+		fi, err = os.Stat(pathname)
+	} else {
+		fi, err = os.Lstat(pathname)
+	}
+
 	if err != nil {
 		return errors.Wrap(err, "cannot Stat")
 	}
 
-	dirent := &Dirent{
-		name:     filepath.Base(pathname),
-		modeType: fi.Mode() & os.ModeType,
+	modeType := fi.Mode() & os.ModeType
+	if modeType&os.ModeDir == 0 {
+		return errors.Errorf("cannot Walk non-directory: %s", pathname)
 	}
 
-	err = walker(pathname, dirent, false, walkFn)
+	dirent := &Dirent{
+		name:     filepath.Base(pathname),
+		modeType: modeType,
+	}
+
+	err = walker(pathname, dirent, options)
 	if err == filepath.SkipDir {
 		return nil
 	}
 	return err
 }
 
-// WalkFollowSymbolicLinks walks the file tree rooted at the specified
-// directory, calling the specified callback function for each file system node
-// in the tree, including root, symbolic links, and other node types. The nodes
-// are walked in lexical order, which makes the output deterministic but means
-// that for very large directories this function can be inefficient.
-//
-// This function is often much faster than filepath.Walk because it does not
-// invoke os.Stat every node it encounters, but rather obtains the file system
-// node type when it reads the parent directory.
-//
-// This function also follows symbolic links that point to directories, and
-// therefore ought to be used with caution, as calling it may cause an infinite
-// loop or pathname too long errors in cases where the file system includes a
-// logical loop of symbolic links.
-//
-//    func main() {
-//        dirname := "."
-//        if len(os.Args) > 1 {
-//            dirname = os.Args[1]
-//        }
-//        if err := godirwalk.WalkFollowSymbolicLinks(dirname, callback); err != nil {
-//            fmt.Fprintf(os.Stderr, "%s\n", err)
-//            os.Exit(1)
-//        }
-//    }
-//
-//    func callback(osPathname string, de *godirwalk.Dirent) error {
-//        fmt.Printf("%s %s\n", de.ModeType(), osPathname)
-//        return nil
-//    }
-func WalkFollowSymbolicLinks(pathname string, walkFn WalkFunc) error {
-	pathname = filepath.Clean(pathname)
-
-	// Ensure specified pathname is a directory, following symbolic link for top
-	// level pathname.
-	fi, err := os.Stat(pathname)
-	if err != nil {
-		return errors.Wrap(err, "cannot Stat")
-	}
-
-	dirent := &Dirent{
-		name:     filepath.Base(pathname),
-		modeType: fi.Mode() & os.ModeType,
-	}
-
-	err = walker(pathname, dirent, true, walkFn)
-	if err == filepath.SkipDir {
-		return nil
-	}
-	return err
-}
-
-func walker(osPathname string, dirent *Dirent, followSymlinks bool, walkFn WalkFunc) error {
-	err := walkFn(osPathname, dirent)
+func walker(osPathname string, dirent *Dirent, options *Options) error {
+	err := options.Callback(osPathname, dirent)
 	if err != nil {
 		if err != filepath.SkipDir {
 			return errors.Wrap(err, "WalkFunc") // wrap error returned by walkFn
@@ -136,14 +129,14 @@ func walker(osPathname string, dirent *Dirent, followSymlinks bool, walkFn WalkF
 	// On some platforms, an entry can have more than one mode type bit set.
 	// For instance, it could have both the symlink bit and the directory bit
 	// set indicating it's a symlink to a directory.
-	if dirent.modeType&os.ModeSymlink != 0 {
-		if !followSymlinks {
+	if dirent.IsSymlink() {
+		if !options.FollowSymbolicLinks {
 			return nil
 		}
 		// Only need to Stat entry if platform did not already have os.ModeDir
 		// set, such as would be the case for unix like operating systems. (This
 		// guard eliminates extra os.Stat check on Windows.)
-		if dirent.modeType&os.ModeDir == 0 {
+		if !dirent.IsDir() {
 			fi, err := os.Stat(osPathname)
 			if err != nil {
 				return errors.Wrap(err, "cannot Stat")
@@ -152,7 +145,7 @@ func walker(osPathname string, dirent *Dirent, followSymlinks bool, walkFn WalkF
 		}
 	}
 
-	if dirent.modeType&os.ModeDir == 0 {
+	if !dirent.IsDir() {
 		return nil
 	}
 
@@ -161,19 +154,22 @@ func walker(osPathname string, dirent *Dirent, followSymlinks bool, walkFn WalkF
 	if err != nil {
 		return errors.Wrap(err, "cannot ReadDirents")
 	}
-	sort.Sort(deChildren)
+
+	if !options.Unsorted {
+		sort.Sort(deChildren) // sort children entries unless upstream says to leave unsorted
+	}
 
 	for _, deChild := range deChildren {
 		osChildname := filepath.Join(osPathname, deChild.name)
-		err = walker(osChildname, deChild, followSymlinks, walkFn)
+		err = walker(osChildname, deChild, options)
 		if err != nil {
 			if err != filepath.SkipDir {
 				return err
 			}
 			// If received skipdir on a directory, stop processing that
-			// directory, but continue to siblings. If received skipdir on a
-			// non-directory, stop processing siblings.
-			if deChild.modeType&os.ModeSymlink != 0 {
+			// directory, but continue to its siblings. If received skipdir on a
+			// non-directory, stop processing remaining siblings.
+			if deChild.IsSymlink() {
 				// Resolve symbolic link referent to determine whether node
 				// is directory or not.
 				fi, err := os.Stat(osChildname)
@@ -182,7 +178,7 @@ func walker(osPathname string, dirent *Dirent, followSymlinks bool, walkFn WalkF
 				}
 				deChild.modeType = fi.Mode() & os.ModeType
 			}
-			if deChild.modeType&os.ModeDir == 0 {
+			if !deChild.IsDir() {
 				// If not directory, return immediately, thus skipping remainder
 				// of siblings.
 				return nil

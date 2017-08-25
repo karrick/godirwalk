@@ -31,15 +31,17 @@ func helperFilepathWalk(tb testing.TB, osDirname string) []string {
 
 func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
 	var entries []string
-	err := godirwalk.Walk(osDirname, func(osPathname string, dirent *godirwalk.Dirent) error {
-		if dirent.Name() == "skip" {
-			return filepath.SkipDir
-		}
-		// filepath.Walk invokes callback function with a slashed version of the
-		// pathname, while godirwalk invokes callback function with the
-		// os-specific pathname separator.
-		entries = append(entries, filepath.ToSlash(osPathname))
-		return nil
+	err := godirwalk.Walk(osDirname, &godirwalk.Options{
+		Callback: func(osPathname string, dirent *godirwalk.Dirent) error {
+			if dirent.Name() == "skip" {
+				return filepath.SkipDir
+			}
+			// filepath.Walk invokes callback function with a slashed version of the
+			// pathname, while godirwalk invokes callback function with the
+			// os-specific pathname separator.
+			entries = append(entries, filepath.ToSlash(osPathname))
+			return nil
+		},
 	})
 	if err != nil {
 		tb.Fatal(err)
