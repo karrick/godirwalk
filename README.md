@@ -20,8 +20,8 @@ provided callback function.
 
 ```Go
     dirname := "some/directory/root"
-    err := godirwalk.Walk(dirname, func(osPathname string, mode os.FileMode) error {
-        fmt.Printf("%s %s\n", mode, osPathname)
+    err := godirwalk.Walk(dirname, func(osPathname string, de *godirwalk.Dirent) error {
+        fmt.Printf("%s %s\n", de.ModeType(), osPathname)
         return nil
     })
 ```
