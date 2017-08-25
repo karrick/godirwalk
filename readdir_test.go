@@ -14,7 +14,7 @@ func TestReaddirnames(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []string{"dir1", "dir2", "file3"}
+	expected := []string{"dir1", "dir2", "file3", "symlinks"}
 
 	if got, want := len(entries), len(expected); got != want {
 		t.Fatalf("(GOT) %v; (WNT) %v", got, want)
@@ -48,6 +48,10 @@ func TestReaddirents(t *testing.T) {
 		&godirwalk.Dirent{
 			Name:     "file3",
 			ModeType: 0,
+		},
+		&godirwalk.Dirent{
+			Name:     "symlinks",
+			ModeType: os.ModeDir,
 		},
 	}
 
