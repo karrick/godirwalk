@@ -21,6 +21,8 @@ func readdirents(osDirname string) (Dirents, error) {
 		return nil, errors.Wrap(err, "cannot Open")
 	}
 
+	var de *syscall.Dirent
+
 	var entries Dirents
 	fd := int(dh.Fd())
 
@@ -42,7 +44,7 @@ func readdirents(osDirname string) (Dirents, error) {
 		buf := scratchBuffer[:n]
 		for len(buf) > 0 {
 			// unshift left-most directory entry from the buffer
-			de := (*syscall.Dirent)(unsafe.Pointer(&buf[0]))
+			de = (*syscall.Dirent)(unsafe.Pointer(&buf[0]))
 			buf = buf[de.Reclen:]
 
 			if de.Ino == 0 {
@@ -52,10 +54,7 @@ func readdirents(osDirname string) (Dirents, error) {
 			// Convert syscall.Dirent.Name, which is array of int8, to []byte,
 			// by overwriting Cap, Len, and Data slice members to values from
 			// syscall.Dirent.
-			//
-			// ??? Set the upper bound on the Cap and the Len to the size of the
-			// record length of the dirent.
-			sh.Cap, sh.Len, sh.Data = int(de.Reclen), int(de.Reclen), uintptr(unsafe.Pointer(&de.Name[0]))
+			sh.Cap, sh.Len, sh.Data = len(de.Name), len(de.Name), uintptr(unsafe.Pointer(&de.Name[0]))
 			nameLength := bytes.IndexByte(nameBytes, 0) // look for NULL byte
 			if nameLength == -1 {
 				nameLength = len(de.Name)
