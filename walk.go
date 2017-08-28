@@ -92,36 +92,40 @@ func Walk(pathname string, options *Options) error {
 
 	if options.FollowSymbolicLinks {
 		fi, err = os.Stat(pathname)
+		if err != nil {
+			return errors.Wrap(err, "cannot Stat")
+		}
 	} else {
 		fi, err = os.Lstat(pathname)
+		if err != nil {
+			return errors.Wrap(err, "cannot Lstat")
+		}
 	}
 
-	if err != nil {
-		return errors.Wrap(err, "cannot Stat")
-	}
-
-	modeType := fi.Mode() & os.ModeType
-	if modeType&os.ModeDir == 0 {
+	mode := fi.Mode()
+	if mode&os.ModeDir == 0 {
 		return errors.Errorf("cannot Walk non-directory: %s", pathname)
 	}
 
 	dirent := &Dirent{
 		name:     filepath.Base(pathname),
-		modeType: modeType,
+		modeType: mode & os.ModeType,
 	}
 
 	err = walker(pathname, dirent, options)
 	if err == filepath.SkipDir {
-		return nil
+		return nil // silence SkipDir for top level
 	}
 	return err
 }
 
+// walker recursively traverses the file system node specified by pathname and
+// the Dirent.
 func walker(osPathname string, dirent *Dirent, options *Options) error {
 	err := options.Callback(osPathname, dirent)
 	if err != nil {
 		if err != filepath.SkipDir {
-			return errors.Wrap(err, "WalkFunc") // wrap error returned by walkFn
+			return errors.Wrap(err, "WalkFunc") // wrap potential errors returned by walkFn
 		}
 		return err
 	}
@@ -150,7 +154,7 @@ func walker(osPathname string, dirent *Dirent, options *Options) error {
 	}
 
 	// If get here, then specified pathname refers to a directory.
-	deChildren, err := ReadDirents(osPathname, 0)
+	deChildren, err := ReadDirents(osPathname)
 	if err != nil {
 		return errors.Wrap(err, "cannot ReadDirents")
 	}
@@ -170,13 +174,19 @@ func walker(osPathname string, dirent *Dirent, options *Options) error {
 			// directory, but continue to its siblings. If received skipdir on a
 			// non-directory, stop processing remaining siblings.
 			if deChild.IsSymlink() {
-				// Resolve symbolic link referent to determine whether node
-				// is directory or not.
-				fi, err := os.Stat(osChildname)
-				if err != nil {
-					return errors.Wrap(err, "cannot Stat")
+				// Only need to Stat entry if platform did not already have
+				// os.ModeDir set, such as would be the case for unix like
+				// operating systems. (This guard eliminates extra os.Stat check
+				// on Windows.)
+				if !deChild.IsDir() {
+					// Resolve symbolic link referent to determine whether node
+					// is directory or not.
+					fi, err := os.Stat(osChildname)
+					if err != nil {
+						return errors.Wrap(err, "cannot Stat")
+					}
+					deChild.modeType = fi.Mode() & os.ModeType
 				}
-				deChild.modeType = fi.Mode() & os.ModeType
 			}
 			if !deChild.IsDir() {
 				// If not directory, return immediately, thus skipping remainder

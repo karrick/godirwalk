@@ -15,7 +15,7 @@ import (
 
 const bufsize = 16 * 1024
 
-func readdirents(osDirname string, max int) (Dirents, error) {
+func readdirents(osDirname string) (Dirents, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot Open")
@@ -23,16 +23,16 @@ func readdirents(osDirname string, max int) (Dirents, error) {
 
 	var entries Dirents
 	fd := int(dh.Fd())
+
 	scratchBuffer := make([]byte, bufsize)
 
 	var nameBytes []byte                                     // will be updated to point to syscall.Dirent.Name
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&nameBytes)) // save slice header, so we can re-use each loop
 
-outerLoop:
 	for {
 		n, err := syscall.ReadDirent(fd, scratchBuffer)
 		if err != nil {
-			_ = dh.Close() // ignore possible error returned by Close
+			_ = dh.Close() // ignore potential error returned by Close
 			return nil, errors.Wrap(err, "cannot ReadDirent")
 		}
 		if n <= 0 {
@@ -56,14 +56,14 @@ outerLoop:
 			// ??? Set the upper bound on the Cap and the Len to the size of the
 			// record length of the dirent.
 			sh.Cap, sh.Len, sh.Data = int(de.Reclen), int(de.Reclen), uintptr(unsafe.Pointer(&de.Name[0]))
-			namlen := bytes.IndexByte(nameBytes, 0) // look for NULL byte
-			if namlen == -1 {
-				namlen = len(de.Name)
+			nameLength := bytes.IndexByte(nameBytes, 0) // look for NULL byte
+			if nameLength == -1 {
+				nameLength = len(de.Name)
 			}
-			nameBytes = nameBytes[:namlen]
+			nameBytes = nameBytes[:nameLength]
 
 			// Skip "." and ".." entries.
-			if namlen == 1 && nameBytes[0] == '.' || namlen == 2 && nameBytes[0] == '.' && nameBytes[1] == '.' {
+			if nameLength == 1 && nameBytes[0] == '.' || nameLength == 2 && nameBytes[0] == '.' && nameBytes[1] == '.' {
 				continue
 			}
 
@@ -92,7 +92,7 @@ outerLoop:
 				// then resolve actual mode by getting stat.
 				fi, err := os.Stat(filepath.Join(osDirname, nameString))
 				if err != nil {
-					_ = dh.Close() // ignore possible error returned by Close
+					_ = dh.Close() // ignore potential error returned by Close
 					return nil, errors.Wrap(err, "cannot Stat")
 				}
 				mode = fi.Mode()
@@ -103,9 +103,6 @@ outerLoop:
 			// setgid, permission bits, and sticky bits, which are coincident to
 			// bits which declare type of the file system node.
 			entries = append(entries, &Dirent{name: nameString, modeType: mode & os.ModeType})
-			if max > 0 && len(entries) == max {
-				break outerLoop
-			}
 		}
 	}
 	if err = dh.Close(); err != nil {
@@ -114,8 +111,8 @@ outerLoop:
 	return entries, nil
 }
 
-func readdirnames(osDirname string, max int) ([]string, error) {
-	des, err := readdirents(osDirname, max)
+func readdirnames(osDirname string) ([]string, error) {
+	des, err := readdirents(osDirname)
 	if err != nil {
 		return nil, err
 	}

@@ -9,33 +9,16 @@ import (
 // The functions in this file are mere wrappers of what is already provided by
 // standard library, in order to provide the same API as this library provides.
 //
-// Please send PR or link to article if there is a more performant way of
-// enumerating directory contents.
+// Please send PR or link to article if you know of a more performant way of
+// enumerating directory contents and hopefully mode types on Windows.
 
-func readdirnames(osDirname string, max int) ([]string, error) {
+func readdirents(osDirname string) (Dirents, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot Open")
 	}
 
-	entries, err := dh.Readdirnames(max)
-	if er := dh.Close(); err == nil {
-		err = er
-	}
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot Readdirnames")
-	}
-
-	return entries, nil
-}
-
-func readdirents(osDirname string, max int) (Dirents, error) {
-	dh, err := os.Open(osDirname)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot Open")
-	}
-
-	fileinfos, err := dh.Readdir(max)
+	fileinfos, err := dh.Readdir(0)
 	if er := dh.Close(); err == nil {
 		err = er
 	}
@@ -44,8 +27,25 @@ func readdirents(osDirname string, max int) (Dirents, error) {
 	}
 
 	entries := make(Dirents, len(fileinfos))
-	for i, v := range fileinfos {
-		entries[i] = &Dirent{name: v.Name(), modeType: v.Mode() & os.ModeType}
+	for i, info := range fileinfos {
+		entries[i] = &Dirent{name: info.Name(), modeType: info.Mode() & os.ModeType}
+	}
+
+	return entries, nil
+}
+
+func readdirnames(osDirname string) ([]string, error) {
+	dh, err := os.Open(osDirname)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot Open")
+	}
+
+	entries, err := dh.Readdirnames(0)
+	if er := dh.Close(); err == nil {
+		err = er
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot Readdirnames")
 	}
 
 	return entries, nil

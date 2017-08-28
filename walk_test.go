@@ -86,17 +86,121 @@ func TestWalkSkipDir(t *testing.T) {
 	t.Run("SkipDirUnderRoot", func(t *testing.T) {
 		test(t, "testdata/dir2")
 	})
+
+	t.Run("SkipDirOnSymlink", func(t *testing.T) {
+		osDirname := "testdata/dir3"
+		actual := helperGodirwalkWalk(t, osDirname)
+
+		expected := []string{
+			"testdata/dir3",
+			"testdata/dir3/aaa.txt",
+			"testdata/dir3/zzz",
+			"testdata/dir3/zzz/aaa.txt",
+		}
+
+		if got, want := len(actual), len(expected); got != want {
+			t.Fatalf("\n(GOT)\n\t%#v\n(WNT)\n\t%#v", actual, expected)
+		}
+
+		for i := 0; i < len(actual); i++ {
+			if got, want := actual[i], expected[i]; got != want {
+				t.Errorf("(GOT) %v; (WNT) %v", got, want)
+			}
+		}
+	})
 }
+
+func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
+	const osDirname = "testdata/dir4"
+
+	var actual []string
+	err := godirwalk.Walk(osDirname, &godirwalk.Options{
+		Callback: func(osPathname string, dirent *godirwalk.Dirent) error {
+			if dirent.Name() == "skip" {
+				return filepath.SkipDir
+			}
+			// filepath.Walk invokes callback function with a slashed version of the
+			// pathname, while godirwalk invokes callback function with the
+			// os-specific pathname separator.
+			actual = append(actual, filepath.ToSlash(osPathname))
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{
+		"testdata/dir4",
+		"testdata/dir4/aaa.txt",
+		"testdata/dir4/symlinkToDirectory",
+		"testdata/dir4/symlinkToFile",
+		"testdata/dir4/zzz",
+		"testdata/dir4/zzz/aaa.txt",
+	}
+
+	if got, want := len(actual), len(expected); got != want {
+		t.Fatalf("\n(GOT)\n\t%#v\n(WNT)\n\t%#v", actual, expected)
+	}
+
+	for i := 0; i < len(actual); i++ {
+		if got, want := actual[i], expected[i]; got != want {
+			t.Errorf("(GOT) %v; (WNT) %v", got, want)
+		}
+	}
+}
+
+func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
+	const osDirname = "testdata/dir4"
+
+	var actual []string
+	err := godirwalk.Walk(osDirname, &godirwalk.Options{
+		FollowSymbolicLinks: true,
+		Callback: func(osPathname string, dirent *godirwalk.Dirent) error {
+			if dirent.Name() == "skip" {
+				return filepath.SkipDir
+			}
+			// filepath.Walk invokes callback function with a slashed version of the
+			// pathname, while godirwalk invokes callback function with the
+			// os-specific pathname separator.
+			actual = append(actual, filepath.ToSlash(osPathname))
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{
+		"testdata/dir4",
+		"testdata/dir4/aaa.txt",
+		"testdata/dir4/symlinkToDirectory",
+		"testdata/dir4/symlinkToDirectory/aaa.txt",
+		"testdata/dir4/symlinkToFile",
+		"testdata/dir4/zzz",
+		"testdata/dir4/zzz/aaa.txt",
+	}
+
+	if got, want := len(actual), len(expected); got != want {
+		t.Fatalf("\n(GOT)\n\t%#v\n(WNT)\n\t%#v", actual, expected)
+	}
+
+	for i := 0; i < len(actual); i++ {
+		if got, want := actual[i], expected[i]; got != want {
+			t.Errorf("(GOT) %v; (WNT) %v", got, want)
+		}
+	}
+}
+
+var goPrefix = filepath.Join(os.Getenv("GOPATH"), "src")
 
 func BenchmarkFilepathWalk(b *testing.B) {
 	if testing.Short() {
 		b.Skip("Skipping benchmark using user's Go source directory")
 	}
 
-	prefix := filepath.Join(os.Getenv("GOPATH"), "src")
-
 	for i := 0; i < b.N; i++ {
-		_ = helperFilepathWalk(b, prefix)
+		_ = helperFilepathWalk(b, goPrefix)
 	}
 }
 
@@ -105,9 +209,23 @@ func BenchmarkGoDirWalk(b *testing.B) {
 		b.Skip("Skipping benchmark using user's Go source directory")
 	}
 
-	prefix := filepath.Join(os.Getenv("GOPATH"), "src")
-
 	for i := 0; i < b.N; i++ {
-		_ = helperGodirwalkWalk(b, prefix)
+		_ = helperGodirwalkWalk(b, goPrefix)
+	}
+}
+
+var flamePrefix = "testdata/dir1"
+
+const flameIterations = 100
+
+func BenchmarkFlameGraphFilepathWalk(b *testing.B) {
+	for i := 0; i < flameIterations; i++ {
+		_ = helperFilepathWalk(b, goPrefix)
+	}
+}
+
+func BenchmarkFlameGraphGoDirWalk(b *testing.B) {
+	for i := 0; i < flameIterations; i++ {
+		_ = helperGodirwalkWalk(b, goPrefix)
 	}
 }

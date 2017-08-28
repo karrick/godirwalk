@@ -50,11 +50,12 @@ func (l Dirents) Less(i, j int) bool { return l[i].name < l[j].name }
 // Swap exchanges the two Dirent entries specified by the two provided indexes.
 func (l Dirents) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 
-// ReadDirents returns a sortable slice of pointers to Dirent structures,
-// representing the immediate descendants of the specified directory. If the
-// specified directory is a symbolic link, it will be resolved.
+// ReadDirents returns a sortable slice of pointers to Dirent structures, each
+// representing the file system name and mode type for one of the immediate
+// descendant of the specified directory. If the specified directory is a
+// symbolic link, it will be resolved.
 //
-//    children, err := godirwalk.ReadDirents(osPathname, 0)
+//    children, err := godirwalk.ReadDirents(osDirname)
 //    if err != nil {
 //    	return nil, errors.Wrap(err, "cannot get list of directory children")
 //    }
@@ -62,15 +63,23 @@ func (l Dirents) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 //    for _, child := range children {
 //        fmt.Printf("%s %s\n", child.ModeType, child.Name)
 //    }
-func ReadDirents(osDirname string, max int) (Dirents, error) {
-	return readdirents(osDirname, max)
+func ReadDirents(osDirname string) (Dirents, error) {
+	return readdirents(osDirname)
 }
 
 // ReadDirnames returns a slice of strings, representing the immediate
 // descendants of the specified directory. If the specified directory is a
 // symbolic link, it will be resolved.
 //
-//    children, err := godirwalk.ReadDirnames(osPathname, 0)
+// Note that this function, depending on operating system, may or may not invoke
+// the ReadDirents function, in order to prepare the list of immediate
+// descendants. Therefore, if your program needs both the names and the file
+// system mode types of descendants, it will always be faster to invoke
+// ReadDirents directly, rather than calling this function, then looping over
+// the results and calling os.Stat for each child.
+//
+//
+//    children, err := godirwalk.ReadDirnames(osDirname)
 //    if err != nil {
 //    	return nil, errors.Wrap(err, "cannot get list of directory children")
 //    }
@@ -78,6 +87,6 @@ func ReadDirents(osDirname string, max int) (Dirents, error) {
 //    for _, child := range children {
 //        fmt.Printf("%s\n", child)
 //    }
-func ReadDirnames(osDirname string, max int) ([]string, error) {
-	return readdirnames(osDirname, max)
+func ReadDirnames(osDirname string) ([]string, error) {
+	return readdirnames(osDirname)
 }

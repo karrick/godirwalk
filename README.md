@@ -128,7 +128,7 @@ causing infinite loops, or error messages, and causing behavior to be
 different based on which platform is running. Even so, there are times
 when following symbolic links while traversing a file system directory
 tree is desired, and this library allows that by providing the
-`RecurseSymbolicLinks` option parameter when the upstream client
+`FollowSymbolicLinks` option parameter when the upstream client
 requires the functionality.
 
 The `filepath.Walk` function also always sorts the immediate
