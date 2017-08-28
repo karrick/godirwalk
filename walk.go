@@ -141,7 +141,11 @@ func walker(osPathname string, dirent *Dirent, options *Options) error {
 		// set, such as would be the case for unix like operating systems. (This
 		// guard eliminates extra os.Stat check on Windows.)
 		if !dirent.IsDir() {
-			fi, err := os.Stat(osPathname)
+			referent, err := os.Readlink(osPathname)
+			if err != nil {
+				return errors.Wrap(err, "cannot Readlink")
+			}
+			fi, err := os.Stat(filepath.Join(filepath.Dir(osPathname), referent))
 			if err != nil {
 				return errors.Wrap(err, "cannot Stat")
 			}
@@ -181,7 +185,11 @@ func walker(osPathname string, dirent *Dirent, options *Options) error {
 				if !deChild.IsDir() {
 					// Resolve symbolic link referent to determine whether node
 					// is directory or not.
-					fi, err := os.Stat(osChildname)
+					referent, err := os.Readlink(osChildname)
+					if err != nil {
+						return errors.Wrap(err, "cannot Readlink")
+					}
+					fi, err := os.Stat(filepath.Join(osPathname, referent))
 					if err != nil {
 						return errors.Wrap(err, "cannot Stat")
 					}
