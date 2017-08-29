@@ -8,7 +8,7 @@ import (
 )
 
 func TestReadDirents(t *testing.T) {
-	entries, err := ReadDirents("testdata")
+	entries, err := ReadDirents("testdata", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestReadDirentsSymlinks(t *testing.T) {
 		expected = append(expected, &Dirent{name: pathname, modeType: info.Mode() & os.ModeType})
 	}
 
-	entries, err := ReadDirents(osDirname)
+	entries, err := ReadDirents(osDirname, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestReadDirentsSymlinks(t *testing.T) {
 }
 
 func TestReadDirnames(t *testing.T) {
-	entries, err := ReadDirnames("testdata")
+	entries, err := ReadDirnames("testdata", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

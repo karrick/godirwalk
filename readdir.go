@@ -55,21 +55,27 @@ func (l Dirents) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 // descendant of the specified directory. If the specified directory is a
 // symbolic link, it will be resolved.
 //
+// If an optional scratch buffer is provided that is at least one page of
+// memory, it will be used when reading directory entries from the file system.
+//
 //    children, err := godirwalk.ReadDirents(osDirname)
 //    if err != nil {
-//    	return nil, errors.Wrap(err, "cannot get list of directory children")
+//        return nil, errors.Wrap(err, "cannot get list of directory children")
 //    }
 //    sort.Sort(children)
 //    for _, child := range children {
 //        fmt.Printf("%s %s\n", child.ModeType, child.Name)
 //    }
-func ReadDirents(osDirname string) (Dirents, error) {
-	return readdirents(osDirname)
+func ReadDirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
+	return readdirents(osDirname, scratchBuffer)
 }
 
 // ReadDirnames returns a slice of strings, representing the immediate
 // descendants of the specified directory. If the specified directory is a
 // symbolic link, it will be resolved.
+//
+// If an optional scratch buffer is provided that is at least one page of
+// memory, it will be used when reading directory entries from the file system.
 //
 // Note that this function, depending on operating system, may or may not invoke
 // the ReadDirents function, in order to prepare the list of immediate
@@ -81,12 +87,12 @@ func ReadDirents(osDirname string) (Dirents, error) {
 //
 //    children, err := godirwalk.ReadDirnames(osDirname)
 //    if err != nil {
-//    	return nil, errors.Wrap(err, "cannot get list of directory children")
+//        return nil, errors.Wrap(err, "cannot get list of directory children")
 //    }
 //    sort.Strings(children)
 //    for _, child := range children {
 //        fmt.Printf("%s\n", child)
 //    }
-func ReadDirnames(osDirname string) ([]string, error) {
-	return readdirnames(osDirname)
+func ReadDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
+	return readdirnames(osDirname, scratchBuffer)
 }

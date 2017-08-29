@@ -8,6 +8,8 @@ import (
 	"github.com/karrick/godirwalk"
 )
 
+const testScratchBufferSize = 16 * 1024
+
 func helperFilepathWalk(tb testing.TB, osDirname string) []string {
 	var entries []string
 	err := filepath.Walk(osDirname, func(osPathname string, info os.FileInfo, err error) error {
@@ -42,6 +44,7 @@ func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
 			entries = append(entries, filepath.ToSlash(osPathname))
 			return nil
 		},
+		ScratchBuffer: make([]byte, testScratchBufferSize),
 	})
 	if err != nil {
 		tb.Fatal(err)
@@ -216,7 +219,7 @@ func BenchmarkGoDirWalk(b *testing.B) {
 
 var flamePrefix = "testdata/dir1"
 
-const flameIterations = 100
+const flameIterations = 10
 
 func BenchmarkFlameGraphFilepathWalk(b *testing.B) {
 	for i := 0; i < flameIterations; i++ {

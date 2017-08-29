@@ -9,10 +9,12 @@ import (
 // The functions in this file are mere wrappers of what is already provided by
 // standard library, in order to provide the same API as this library provides.
 //
+// The scratch buffer argument is ignored by this architecture.
+//
 // Please send PR or link to article if you know of a more performant way of
 // enumerating directory contents and hopefully mode types on Windows.
 
-func readdirents(osDirname string) (Dirents, error) {
+func readdirents(osDirname string, _ []byte) (Dirents, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot Open")
@@ -34,7 +36,7 @@ func readdirents(osDirname string) (Dirents, error) {
 	return entries, nil
 }
 
-func readdirnames(osDirname string) ([]string, error) {
+func readdirnames(osDirname string, _ []byte) ([]string, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot Open")

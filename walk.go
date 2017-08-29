@@ -39,6 +39,11 @@ type Options struct {
 	// Callback is the function that Walk will invoke for every file system node
 	// it encounters.
 	Callback WalkFunc
+
+	// ScratchBuffer is an optional scratch buffer for Walk to use when reading
+	// directory entries, to reduce amount of garbage generation. Not all
+	// architectures take advantage of the scratch buffer.
+	ScratchBuffer []byte
 }
 
 // WalkFunc is the type of the function called for each file system node visited
@@ -112,16 +117,16 @@ func Walk(pathname string, options *Options) error {
 		modeType: mode & os.ModeType,
 	}
 
-	err = walker(pathname, dirent, options)
+	err = walk(pathname, dirent, options)
 	if err == filepath.SkipDir {
 		return nil // silence SkipDir for top level
 	}
 	return err
 }
 
-// walker recursively traverses the file system node specified by pathname and
-// the Dirent.
-func walker(osPathname string, dirent *Dirent, options *Options) error {
+// walk recursively traverses the file system node specified by pathname and the
+// Dirent.
+func walk(osPathname string, dirent *Dirent, options *Options) error {
 	err := options.Callback(osPathname, dirent)
 	if err != nil {
 		if err != filepath.SkipDir {
@@ -158,7 +163,7 @@ func walker(osPathname string, dirent *Dirent, options *Options) error {
 	}
 
 	// If get here, then specified pathname refers to a directory.
-	deChildren, err := ReadDirents(osPathname)
+	deChildren, err := ReadDirents(osPathname, options.ScratchBuffer)
 	if err != nil {
 		return errors.Wrap(err, "cannot ReadDirents")
 	}
@@ -169,7 +174,7 @@ func walker(osPathname string, dirent *Dirent, options *Options) error {
 
 	for _, deChild := range deChildren {
 		osChildname := filepath.Join(osPathname, deChild.name)
-		err = walker(osChildname, deChild, options)
+		err = walk(osChildname, deChild, options)
 		if err != nil {
 			if err != filepath.SkipDir {
 				return err
