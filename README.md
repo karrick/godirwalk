@@ -90,6 +90,21 @@ PASS
 ok  	github.com/karrick/godirwalk	16.822s
 ```
 
+##### Linux
+
+```Bash
+go test -bench=.
+goos: linux
+goarch: amd64
+pkg: github.com/karrick/godirwalk
+BenchmarkFilepathWalk-12              	       1	1609189170 ns/op
+BenchmarkGoDirWalk-12                 	       5	 211336628 ns/op
+BenchmarkFlameGraphFilepathWalk-12    	       1	3968119932 ns/op
+BenchmarkFlameGraphGoDirWalk-12       	       1	2139598998 ns/op
+PASS
+ok  	github.com/karrick/godirwalk	9.007s
+```
+
 ### It's more correct on Windows than `filepath.Walk`
 
 I did not previously care about this either, but humor me. We all love
