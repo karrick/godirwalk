@@ -73,6 +73,23 @@ file's mode. If the callback does care about a particular node's
 entire `os.FileInfo` data structure, the callback can easiy invoke
 `os.Stat` when needed, and only when needed.
 
+#### Benchmarks
+
+##### macOS
+
+```Bash
+go test -bench=.
+goos: darwin
+goarch: amd64
+pkg: github.com/karrick/godirwalk
+BenchmarkFilepathWalk-8             	       1	3001274570 ns/op
+BenchmarkGoDirWalk-8                	       3	 465573172 ns/op
+BenchmarkFlameGraphFilepathWalk-8   	       1	6957916936 ns/op
+BenchmarkFlameGraphGoDirWalk-8      	       1	4210582571 ns/op
+PASS
+ok  	github.com/karrick/godirwalk	16.822s
+```
+
 ### It's more correct on Windows than `filepath.Walk`
 
 I did not previously care about this either, but humor me. We all love
