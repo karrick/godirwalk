@@ -36,9 +36,14 @@ type Options struct {
 	// next.
 	Unsorted bool
 
-	// Callback is the function that Walk will invoke for every file system node
-	// it encounters.
+	// Callback is a required function that Walk will invoke for every file
+	// system node it encounters.
 	Callback WalkFunc
+
+	// PostChildrenCallback is an option function that Walk will invoke for
+	// every file system directory it encounters after its children have been
+	// processed.
+	PostChildrenCallback WalkFunc
 
 	// ScratchBuffer is an optional scratch buffer for Walk to use when reading
 	// directory entries, to reduce amount of garbage generation. Not all
@@ -130,7 +135,7 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	err := options.Callback(osPathname, dirent)
 	if err != nil {
 		if err != filepath.SkipDir {
-			return errors.Wrap(err, "WalkFunc") // wrap potential errors returned by walkFn
+			return errors.Wrap(err, "Callback") // wrap potential errors returned by walkFn
 		}
 		return err
 	}
@@ -207,6 +212,17 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 				return nil
 			}
 		}
+	}
+
+	if options.PostChildrenCallback == nil {
+		return nil
+	}
+	err = options.PostChildrenCallback(osPathname, dirent)
+	if err != nil {
+		if err != filepath.SkipDir {
+			return errors.Wrap(err, "PostChildrenCallback") // wrap potential errors returned by walkFn
+		}
+		return err
 	}
 	return nil
 }

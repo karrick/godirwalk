@@ -195,6 +195,47 @@ func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
 	}
 }
 
+func TestPostChildrenCallback(t *testing.T) {
+	const osDirname = "testdata/dir5"
+
+	var actual []string
+
+	err := godirwalk.Walk(osDirname, &godirwalk.Options{
+		ScratchBuffer: make([]byte, testScratchBufferSize),
+		Callback: func(osPathname string, _ *godirwalk.Dirent) error {
+			t.Logf("walk in: %s", osPathname)
+			return nil
+		},
+		PostChildrenCallback: func(osPathname string, de *godirwalk.Dirent) error {
+			t.Logf("walk out: %s", osPathname)
+			actual = append(actual, osPathname)
+			return nil
+		},
+	})
+	if err != nil {
+		t.Errorf("(GOT): %v; (WNT): %v", err, nil)
+	}
+
+	expected := []string{
+		"testdata/dir5/a2/a2a",
+		"testdata/dir5/a2",
+		"testdata/dir5",
+	}
+
+	if got, want := len(actual), len(expected); got != want {
+		t.Errorf("(GOT) %v; (WNT) %v", got, want)
+	}
+
+	for i := 0; i < len(actual); i++ {
+		if i >= len(expected) {
+			t.Fatalf("(GOT) %v; (WNT): %v", actual[i], nil)
+		}
+		if got, want := actual[i], expected[i]; got != want {
+			t.Errorf("(GOT) %v; (WNT) %v", got, want)
+		}
+	}
+}
+
 var goPrefix = filepath.Join(os.Getenv("GOPATH"), "src")
 
 func BenchmarkFilepathWalk(b *testing.B) {
