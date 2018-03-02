@@ -17,6 +17,14 @@ func main() {
 			fmt.Printf("%s %s\n", de.ModeType(), osPathname)
 			return nil
 		},
+		ErrorCallback: func(osPathname string, err error) godirwalk.ErrorAction {
+			// Your program may want to log the error somehow.
+			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+
+			// For the purposes of this example, a simple SkipNode will suffice,
+			// although in reality perhaps additional logic might be called for.
+			return godirwalk.SkipNode
+		},
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)

@@ -12,6 +12,8 @@ In short, why do I use this library?
 
 ## Usage Example
 
+Additional examples are provided in the `examples/` subdirectory.
+
 This library will normalize the provided top level directory name
 based on the os-specific path separator by calling `filepath.Clean` on
 its first argument. However it always provides the pathname created by
