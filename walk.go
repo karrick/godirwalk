@@ -10,6 +10,23 @@ import (
 
 // Options provide parameters for how the Walk function operates.
 type Options struct {
+	// ErrorCallback specifies a function to be invoked in the case of an error
+	// that could potentially be ignored while walking a file system
+	// hierarchy. When set to nil or left as its zero-value, any error condition
+	// causes Walk to immediately return the error describing what took
+	// place. When non-nil, this user supplied function is invoked with the OS
+	// pathname of the file system object that caused the error along with the
+	// error that took place. The return value of the supplied ErrorCallback
+	// function determines whether the error will cause Walk to halt immediately
+	// as it would were no ErrorCallback value provided, or skip this file
+	// system node yet continue on with the remaining nodes in the file system
+	// hierarchy.
+	//
+	// NOTE: ErrorCallback is only invoked for errors that are returned by the
+	// runtime, and not for errors returned by other user supplied callback
+	// functions.
+	ErrorCallback func(string, error) ErrorAction
+
 	// FollowSymbolicLinks specifies whether Walk will follow symbolic links
 	// that refer to directories. When set to false or left as its zero-value,
 	// Walk will still invoke the callback function with symbolic link nodes,
@@ -51,6 +68,25 @@ type Options struct {
 	ScratchBuffer []byte
 }
 
+// ErrorAction defines a set of actions the Walk function could take based on
+// the occurrence of an error returned by the operating system. See the
+// documentation for the ErrorCallback field of the Options structure for more
+// information.
+type ErrorAction int
+
+const (
+	// Halt is the ErrorAction return value when the upstream code wants to halt
+	// the walk process when a runtime error takes place. It matches the default
+	// action the Walk function would take were no ErrorCallback provided.
+	Halt ErrorAction = iota
+
+	// SkipNode is the ErrorAction return value when the upstream code wants to
+	// ignore the runtime error for the current file system node, skip
+	// processing of the node that caused the error, and continue walking the
+	// file system hierarchy with the remaining nodes.
+	SkipNode
+)
+
 // WalkFunc is the type of the function called for each file system node visited
 // by Walk. The pathname argument will contain the argument to Walk as a prefix;
 // that is, if Walk is called with "dir", which is a directory containing the
@@ -60,12 +96,12 @@ type Options struct {
 // providing access to both the basename and the mode type of the file system
 // node.
 //
-// If an error is returned by the walk function, processing stops. The sole
-// exception is when the function returns the special value filepath.SkipDir. If
-// the function returns filepath.SkipDir when invoked on a directory, Walk skips
-// the directory's contents entirely. If the function returns filepath.SkipDir
-// when invoked on a non-directory file system node, Walk skips the remaining
-// files in the containing directory.
+// If an error is returned by the Callback or PostChildrenCallback functions,
+// processing stops. The sole exception is when the function returns the special
+// value filepath.SkipDir. If the function returns filepath.SkipDir when invoked
+// on a directory, Walk skips the directory's contents entirely. If the function
+// returns filepath.SkipDir when invoked on a non-directory file system node,
+// Walk skips the remaining files in the containing directory.
 type WalkFunc func(osPathname string, directoryEntry *Dirent) error
 
 // Walk walks the file tree rooted at the specified directory, calling the
@@ -77,6 +113,12 @@ type WalkFunc func(osPathname string, directoryEntry *Dirent) error
 // This function is often much faster than filepath.Walk because it does not
 // invoke os.Stat for every node it encounters, but rather obtains the file
 // system node type when it reads the parent directory.
+//
+// If an error is returned by an operating system, processing typically
+// stops. However, when an ErrorCallback function is provided in the provided
+// Options structure, that function is invoked with the error along with the OS
+// pathname of the file system node that caused the error. The ErrorCallback
+// function's return value determines the action that Walk will then take.
 //
 //    func main() {
 //        dirname := "."
@@ -122,12 +164,24 @@ func Walk(pathname string, options *Options) error {
 		modeType: mode & os.ModeType,
 	}
 
+	// If ErrorCallback is nil, set to a default value that halts the walk
+	// process on all operating system errors. This is done to allow error
+	// handling to be more succinct in the walk code.
+	if options.ErrorCallback == nil {
+		options.ErrorCallback = defaultErrorCallback
+	}
+
 	err = walk(pathname, dirent, options)
 	if err == filepath.SkipDir {
 		return nil // silence SkipDir for top level
 	}
 	return err
 }
+
+// defaultErrorCallback always returns Halt because if the upstream code did not
+// provide an ErrorCallback function, walking the file system hierarchy ought to
+// halt upon any operating system error.
+func defaultErrorCallback(_ string, _ error) ErrorAction { return Halt }
 
 // walk recursively traverses the file system node specified by pathname and the
 // Dirent.
@@ -153,11 +207,21 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		if !dirent.IsDir() {
 			referent, err := os.Readlink(osPathname)
 			if err != nil {
-				return errors.Wrap(err, "cannot Readlink")
+				err = errors.Wrap(err, "cannot Readlink")
+				if action := options.ErrorCallback(osPathname, err); action == SkipNode {
+					return nil
+				}
+				return err
 			}
-			fi, err := os.Stat(filepath.Join(filepath.Dir(osPathname), referent))
+
+			osp := filepath.Join(filepath.Dir(osPathname), referent)
+			fi, err := os.Stat(osp)
 			if err != nil {
-				return errors.Wrap(err, "cannot Stat")
+				err = errors.Wrap(err, "cannot Stat")
+				if action := options.ErrorCallback(osp, err); action == SkipNode {
+					return nil
+				}
+				return err
 			}
 			dirent.modeType = fi.Mode() & os.ModeType
 		}
@@ -170,7 +234,11 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	// If get here, then specified pathname refers to a directory.
 	deChildren, err := ReadDirents(osPathname, options.ScratchBuffer)
 	if err != nil {
-		return errors.Wrap(err, "cannot ReadDirents")
+		err = errors.Wrap(err, "cannot ReadDirents")
+		if action := options.ErrorCallback(osPathname, err); action == SkipNode {
+			return nil
+		}
+		return err
 	}
 
 	if !options.Unsorted {
@@ -197,11 +265,20 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 					// is directory or not.
 					referent, err := os.Readlink(osChildname)
 					if err != nil {
-						return errors.Wrap(err, "cannot Readlink")
+						err = errors.Wrap(err, "cannot Readlink")
+						if action := options.ErrorCallback(osChildname, err); action == SkipNode {
+							continue // with next child
+						}
+						return err
 					}
-					fi, err := os.Stat(filepath.Join(osPathname, referent))
+					osp := filepath.Join(osPathname, referent)
+					fi, err := os.Stat(osp)
 					if err != nil {
-						return errors.Wrap(err, "cannot Stat")
+						err = errors.Wrap(err, "cannot Stat")
+						if action := options.ErrorCallback(osp, err); action == SkipNode {
+							continue // with next child
+						}
+						return err
 					}
 					deChild.modeType = fi.Mode() & os.ModeType
 				}
