@@ -35,6 +35,10 @@ func TestReadDirents(t *testing.T) {
 			modeType: os.ModeDir,
 		},
 		&Dirent{
+			name:     "dir6",
+			modeType: os.ModeDir,
+		},
+		&Dirent{
 			name:     "file3",
 			modeType: 0,
 		},
@@ -103,7 +107,7 @@ func TestReadDirnames(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []string{"dir1", "dir2", "dir3", "dir4", "dir5", "file3", "symlinks"}
+	expected := []string{"dir1", "dir2", "dir3", "dir4", "dir5", "dir6", "file3", "symlinks"}
 
 	if got, want := len(entries), len(expected); got != want {
 		t.Fatalf("(GOT) %v; (WNT) %v", got, want)
