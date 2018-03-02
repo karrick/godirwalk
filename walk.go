@@ -22,8 +22,8 @@ type Options struct {
 	// system node yet continue on with the remaining nodes in the file system
 	// hierarchy.
 	//
-	// NOTE: ErrorCallback is only invoked for errors that are returned by the
-	// runtime, and not for errors returned by other user supplied callback
+	// ErrorCallback is invoked both for errors that are returned by the
+	// runtime, and for errors returned by other user supplied callback
 	// functions.
 	ErrorCallback func(string, error) ErrorAction
 
@@ -69,7 +69,7 @@ type Options struct {
 }
 
 // ErrorAction defines a set of actions the Walk function could take based on
-// the occurrence of an error returned by the operating system. See the
+// the occurrence of an error while walking the file system. See the
 // documentation for the ErrorCallback field of the Options structure for more
 // information.
 type ErrorAction int
@@ -97,11 +97,19 @@ const (
 // node.
 //
 // If an error is returned by the Callback or PostChildrenCallback functions,
-// processing stops. The sole exception is when the function returns the special
-// value filepath.SkipDir. If the function returns filepath.SkipDir when invoked
-// on a directory, Walk skips the directory's contents entirely. If the function
+// and no ErrorCallback function is provided, processing stops. If an
+// ErrorCallback function is provided, then it is invoked with the OS pathname
+// of the node that caused the error along along with the error. The return
+// value of the ErrorCallback function determines whether to halt processing, or
+// skip this node and continue processing remaining file system nodes.
+//
+// The exception is when the function returns the special value
+// filepath.SkipDir. If the function returns filepath.SkipDir when invoked on a
+// directory, Walk skips the directory's contents entirely. If the function
 // returns filepath.SkipDir when invoked on a non-directory file system node,
-// Walk skips the remaining files in the containing directory.
+// Walk skips the remaining files in the containing directory. Note that any
+// supplied ErrorCallback function is not invoked with filepath.SkipDir when the
+// Callback or PostChildrenCallback functions return that special value.
 type WalkFunc func(osPathname string, directoryEntry *Dirent) error
 
 // Walk walks the file tree rooted at the specified directory, calling the
@@ -114,8 +122,9 @@ type WalkFunc func(osPathname string, directoryEntry *Dirent) error
 // invoke os.Stat for every node it encounters, but rather obtains the file
 // system node type when it reads the parent directory.
 //
-// If an error is returned by an operating system, processing typically
-// stops. However, when an ErrorCallback function is provided in the provided
+// If a runtime error occurs, either from the operating system or from the
+// upstream Callback or PostChildrenCallback functions, processing typically
+// halts. However, when an ErrorCallback function is provided in the provided
 // Options structure, that function is invoked with the error along with the OS
 // pathname of the file system node that caused the error. The ErrorCallback
 // function's return value determines the action that Walk will then take.
@@ -196,8 +205,12 @@ func defaultErrorCallback(_ string, _ error) ErrorAction { return Halt }
 func walk(osPathname string, dirent *Dirent, options *Options) error {
 	err := options.Callback(osPathname, dirent)
 	if err != nil {
-		if err != filepath.SkipDir {
-			return errors.Wrap(err, "Callback") // wrap potential errors returned by walkFn
+		if err == filepath.SkipDir {
+			return err
+		}
+		err = errors.Wrap(err, "Callback") // wrap potential errors returned by callback
+		if action := options.ErrorCallback(osPathname, err); action == SkipNode {
+			return nil
 		}
 		return err
 	}
@@ -302,12 +315,15 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	if options.PostChildrenCallback == nil {
 		return nil
 	}
+
 	err = options.PostChildrenCallback(osPathname, dirent)
-	if err != nil {
-		if err != filepath.SkipDir {
-			return errors.Wrap(err, "PostChildrenCallback") // wrap potential errors returned by walkFn
-		}
+	if err == nil || err == filepath.SkipDir {
 		return err
 	}
-	return nil
+
+	err = errors.Wrap(err, "PostChildrenCallback") // wrap potential errors returned by callback
+	if action := options.ErrorCallback(osPathname, err); action == SkipNode {
+		return nil
+	}
+	return err
 }
