@@ -49,7 +49,7 @@ func readdirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 			de = (*syscall.Dirent)(unsafe.Pointer(&buf[0])) // point entry to first syscall.Dirent in buffer
 			buf = buf[de.Reclen:]                           // advance buffer
 
-			if de.Ino == 0 {
+			if direntIno(de) == 0 {
 				continue // this item has been deleted, but not yet removed from directory
 			}
 
