@@ -13,6 +13,7 @@ func main() {
 		dirname = os.Args[1]
 	}
 	err := godirwalk.Walk(dirname, &godirwalk.Options{
+		// Unsorted: true, // set true for faster yet non-deterministic enumeration (see godoc)
 		Callback: func(osPathname string, de *godirwalk.Dirent) error {
 			fmt.Printf("%s %s\n", de.ModeType(), osPathname)
 			return nil
