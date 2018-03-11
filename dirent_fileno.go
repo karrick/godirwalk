@@ -1,9 +1,9 @@
-// +build darwin dragonfly linux nacl netbsd openbsd solaris
+// +build dragonfly freebsd openbsd netbsd
 
 package godirwalk
 
 import "syscall"
 
 func direntIno(de *syscall.Dirent) uint64 {
-	return de.Ino
+	return uint64(de.Fileno)
 }
