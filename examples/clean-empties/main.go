@@ -15,7 +15,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	scratchBuffer := make([]byte, 32768) // allocate once and re-use
+	scratchBuffer := make([]byte, 64*1024) // allocate once and re-use each time
 	var count, total int
 	var err error
 
