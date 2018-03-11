@@ -188,6 +188,10 @@ func Walk(pathname string, options *Options) error {
 		options.ErrorCallback = defaultErrorCallback
 	}
 
+	if options.ScratchBuffer == nil {
+		options.ScratchBuffer = make([]byte, 64*1024)
+	}
+
 	err = walk(pathname, dirent, options)
 	if err == filepath.SkipDir {
 		return nil // silence SkipDir for top level
