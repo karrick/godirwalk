@@ -20,14 +20,14 @@ type Dirent struct {
 // This function is rarely used, as Dirent structures are provided by other
 // functions in this library that read and walk directories.
 func NewDirent(osPathname string) (*Dirent, error) {
-	fi, err = os.Lstat(osPathname)
+	fi, err := os.Lstat(osPathname)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot lstat")
 	}
 	return &Dirent{
 		name:     filepath.Base(osPathname),
 		modeType: fi.Mode() & os.ModeType,
-	}
+	}, nil
 }
 
 // Name returns the basename of the file system entry.
