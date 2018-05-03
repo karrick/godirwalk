@@ -66,6 +66,9 @@ type Options struct {
 	// directory entries, to reduce amount of garbage generation. Not all
 	// architectures take advantage of the scratch buffer.
 	ScratchBuffer []byte
+
+	// Ignore hidden files and folders.
+	IgnoreHiddens bool
 }
 
 // ErrorAction defines a set of actions the Walk function could take based on
@@ -271,6 +274,9 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	}
 
 	for _, deChild := range deChildren {
+		if options.IgnoreHiddens && deChild.name[0:1] == "." {
+			continue
+		}
 		osChildname := filepath.Join(osPathname, deChild.name)
 		err = walk(osChildname, deChild, options)
 		if err != nil {
