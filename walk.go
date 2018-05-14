@@ -240,10 +240,10 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 			}
 
 			var osp string
-			if referent[0] != filepath.Separator {
-				osp = filepath.Join(filepath.Dir(osPathname), referent)
-			} else {
+			if filepath.IsAbs(referent) {
 				osp = referent
+			} else {
+				osp = filepath.Join(filepath.Dir(osPathname), referent)
 			}
 
 			fi, err := os.Stat(osp)
@@ -304,10 +304,10 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 					}
 
 					var osp string
-					if referent[0] != filepath.Separator {
-						osp = filepath.Join(osPathname, referent)
-					} else {
+					if filepath.IsAbs(referent) {
 						osp = referent
+					} else {
+						osp = filepath.Join(osPathname, referent)
 					}
 
 					fi, err := os.Stat(osp)
