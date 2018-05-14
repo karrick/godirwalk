@@ -52,6 +52,19 @@ func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
 	return entries
 }
 
+func symlinkAbs(oldname, newname string) error {
+	absDir, err := filepath.Abs(oldname)
+	if err != nil {
+		return err
+	}
+
+	if err = os.Symlink(absDir, newname); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func TestWalkSkipDir(t *testing.T) {
 	// Ensure the results from calling filepath.Walk exactly match the results
 	// for calling this library's walk function.
@@ -114,7 +127,20 @@ func TestWalkSkipDir(t *testing.T) {
 }
 
 func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
-	const osDirname = "testdata/dir4"
+	const (
+		osDirname = "testdata/dir4"
+		symlink   = "testdata/dir4/symlinkToAbsDirectory"
+	)
+
+	if err := symlinkAbs("testdata/dir4/zzz", symlink); err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := os.Remove(symlink); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	var actual []string
 	err := godirwalk.Walk(osDirname, &godirwalk.Options{
@@ -136,6 +162,7 @@ func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
 	expected := []string{
 		"testdata/dir4",
 		"testdata/dir4/aaa.txt",
+		"testdata/dir4/symlinkToAbsDirectory",
 		"testdata/dir4/symlinkToDirectory",
 		"testdata/dir4/symlinkToFile",
 		"testdata/dir4/zzz",
@@ -154,7 +181,20 @@ func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
 }
 
 func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
-	const osDirname = "testdata/dir4"
+	const (
+		osDirname = "testdata/dir4"
+		symlink   = "testdata/dir4/symlinkToAbsDirectory"
+	)
+
+	if err := symlinkAbs("testdata/dir4/zzz", symlink); err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := os.Remove(symlink); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	var actual []string
 	err := godirwalk.Walk(osDirname, &godirwalk.Options{
@@ -177,6 +217,8 @@ func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
 	expected := []string{
 		"testdata/dir4",
 		"testdata/dir4/aaa.txt",
+		"testdata/dir4/symlinkToAbsDirectory",
+		"testdata/dir4/symlinkToAbsDirectory/aaa.txt",
 		"testdata/dir4/symlinkToDirectory",
 		"testdata/dir4/symlinkToDirectory/aaa.txt",
 		"testdata/dir4/symlinkToFile",
