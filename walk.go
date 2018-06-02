@@ -239,7 +239,13 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 				return err
 			}
 
-			osp := filepath.Join(filepath.Dir(osPathname), referent)
+			var osp string
+			if filepath.IsAbs(referent) {
+				osp = referent
+			} else {
+				osp = filepath.Join(filepath.Dir(osPathname), referent)
+			}
+
 			fi, err := os.Stat(osp)
 			if err != nil {
 				err = errors.Wrap(err, "cannot Stat")
@@ -296,7 +302,14 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 						}
 						return err
 					}
-					osp := filepath.Join(osPathname, referent)
+
+					var osp string
+					if filepath.IsAbs(referent) {
+						osp = referent
+					} else {
+						osp = filepath.Join(osPathname, referent)
+					}
+
 					fi, err := os.Stat(osp)
 					if err != nil {
 						err = errors.Wrap(err, "cannot Stat")
