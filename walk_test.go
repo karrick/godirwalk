@@ -57,12 +57,7 @@ func symlinkAbs(oldname, newname string) error {
 	if err != nil {
 		return err
 	}
-
-	if err = os.Symlink(absDir, newname); err != nil {
-		return err
-	}
-
-	return nil
+	return os.Symlink(absDir, newname)
 }
 
 func TestWalkSkipDir(t *testing.T) {
