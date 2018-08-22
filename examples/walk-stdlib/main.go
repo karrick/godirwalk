@@ -15,7 +15,7 @@ func main() {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%s %s\n", info.Mode(), osPathname)
+		// fmt.Printf("%s %s\n", info.Mode(), osPathname)
 		return nil
 	})
 	if err != nil {
