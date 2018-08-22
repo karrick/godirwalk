@@ -11,13 +11,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var defaultBufferSize, pageSize int
-
-func init() {
-	pageSize = os.Getpagesize()
-	defaultBufferSize = 2 * pageSize
-}
-
 func readdirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
@@ -28,8 +21,8 @@ func readdirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 
 	fd := int(dh.Fd())
 
-	if len(scratchBuffer) < pageSize {
-		scratchBuffer = make([]byte, defaultBufferSize)
+	if len(scratchBuffer) < MinimumScratchBufferSize {
+		scratchBuffer = make([]byte, DefaultScratchBufferSize)
 	}
 
 	var de *syscall.Dirent

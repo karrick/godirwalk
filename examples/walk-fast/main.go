@@ -25,8 +25,7 @@ func main() {
 			// although in reality perhaps additional logic might be called for.
 			return godirwalk.SkipNode
 		},
-		ScratchBuffer: make([]byte, 32*1024),
-		Unsorted:      true, // set true for faster yet non-deterministic enumeration (see godoc)
+		Unsorted: true, // set true for faster yet non-deterministic enumeration (see godoc)
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)

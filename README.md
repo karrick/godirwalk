@@ -27,7 +27,6 @@ provided callback function.
             fmt.Printf("%s %s\n", de.ModeType(), osPathname)
             return nil
         },
-        ScratchBuffer: make([]byte, 32 * 1024), // (optional) reduce GC
         Unsorted: true, // (optional) set true for faster yet non-deterministic enumeration (see godoc)
     })
 ```
