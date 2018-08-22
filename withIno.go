@@ -4,6 +4,6 @@ package godirwalk
 
 import "syscall"
 
-func direntIno(de *syscall.Dirent) uint64 {
+func inoFromDirent(de *syscall.Dirent) uint64 {
 	return de.Ino
 }
