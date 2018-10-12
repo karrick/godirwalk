@@ -112,7 +112,7 @@ type RecurseOptions struct {
 // Walk skips the remaining files in the containing directory. Note that any
 // supplied ErrorCallback function is not invoked with filepath.SkipDir when the
 // Callback or PostChildrenCallback functions return that special value.
-type RecurseFunc func(osPathname string, directoryEntry *Dirent, sibling, child RecurseResult) (RecurseResult, error)
+type RecurseFunc func(osPathname string, directoryEntry *Dirent, sibling, child int64) (int64, error)
 
 // RecurseResult is empty interface, allowing Callbacks to work with any 
 // type of data (well ... it should)
@@ -162,7 +162,7 @@ type RecurseResult interface {}
 //            os.Exit(1)
 //        }
 //    }
-func Recurse(pathname string, options *RecurseOptions, startValue RecurseResult) (RecurseResult, error) {
+func Recurse(pathname string, options *RecurseOptions, startValue int64) (int64, error) {
 	pathname = filepath.Clean(pathname)
 
 	var fi os.FileInfo
@@ -210,7 +210,7 @@ func Recurse(pathname string, options *RecurseOptions, startValue RecurseResult)
 
 // walk recursively traverses the file system node specified by pathname and the
 // Dirent.
-func recurse(osPathname string, dirent *Dirent, options *RecurseOptions, siblingValue, startValue RecurseResult) (RecurseResult, error) {
+func recurse(osPathname string, dirent *Dirent, options *RecurseOptions, siblingValue, startValue int64) (int64, error) {
 	// On some platforms, an entry can have more than one mode type bit set.
 	// For instance, it could have both the symlink bit and the directory bit
 	// set indicating it's a symlink to a directory.
