@@ -314,35 +314,3 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	}
 	return err
 }
-
-func symlinkDirHelper(pathname string, de *Dirent, o *Options) (skip bool, err error) {
-	// Only need to Stat entry if platform did not already have os.ModeDir
-	// set, such as would be the case for unix like operating systems.
-	// (This guard eliminates extra os.Stat check on Windows.)
-	if !de.IsDir() {
-		// Remove symlinks from the pathname (replaced with a more direct path)
-		pathname, evErr := filepath.EvalSymlinks(pathname)
-		if evErr != nil {
-			skip = true
-			err = errors.Wrap(evErr, "cannot EvalSymlinks")
-			if action := o.ErrorCallback(pathname, err); action == SkipNode {
-				err = nil
-				return
-			}
-			return
-		}
-
-		fi, stErr := os.Stat(pathname)
-		if stErr != nil {
-			skip = true
-			err = errors.Wrap(stErr, "cannot Stat")
-			if action := o.ErrorCallback(pathname, err); action == SkipNode {
-				err = nil
-				return
-			}
-			return
-		}
-		de.modeType = fi.Mode() & os.ModeType
-	}
-	return
-}
