@@ -248,7 +248,7 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 			return nil
 		}
 		var skip bool
-		skip, err = symlinkDirHelper(filepath.Dir(osPathname), osPathname, dirent, options)
+		skip, err = symlinkDirHelper(osPathname, dirent, options)
 		if skip || err != nil {
 			return err
 		}
@@ -284,7 +284,7 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 			// non-directory, stop processing remaining siblings.
 			if deChild.IsSymlink() {
 				var skip bool
-				if skip, err = symlinkDirHelper(osPathname, osChildname, deChild, options); err != nil {
+				if skip, err = symlinkDirHelper(osChildname, deChild, options); err != nil {
 					return err
 				}
 				if skip {
@@ -315,36 +315,16 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	return err
 }
 
-func symlinkDirHelper(dirname string, pathname string, de *Dirent, o *Options) (skip bool, err error) {
+func symlinkDirHelper(pathname string, de *Dirent, o *Options) (skip bool, err error) {
 	// Only need to Stat entry if platform did not already have os.ModeDir
 	// set, such as would be the case for unix like operating systems.
 	// (This guard eliminates extra os.Stat check on Windows.)
 	if !de.IsDir() {
-		// Resolve symbolic link referent to determine whether node is
-		// directory or not.
-		referent, rlErr := os.Readlink(pathname)
-		if rlErr != nil {
-			skip = true
-			err = errors.Wrap(rlErr, "cannot Readlink")
-			if action := o.ErrorCallback(pathname, err); action == SkipNode {
-				err = nil
-				return
-			}
-			return
-		}
-
-		var osp string
-		if filepath.IsAbs(referent) {
-			osp = referent
-		} else {
-			osp = filepath.Join(dirname, referent)
-		}
-
-		fi, stErr := os.Stat(osp)
+		fi, stErr := os.Stat(pathname)
 		if stErr != nil {
 			skip = true
 			err = errors.Wrap(stErr, "cannot Stat")
-			if action := o.ErrorCallback(osp, err); action == SkipNode {
+			if action := o.ErrorCallback(pathname, err); action == SkipNode {
 				err = nil
 				return
 			}
