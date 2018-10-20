@@ -246,33 +246,9 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		if !options.FollowSymbolicLinks {
 			return nil
 		}
-		// Only need to Stat entry if platform did not already have os.ModeDir
-		// set, such as would be the case for unix like operating systems. (This
-		// guard eliminates extra os.Stat check on Windows.)
-		if !dirent.IsDir() {
-			referent, err := os.Readlink(osPathname)
-			if err != nil {
-				if action := options.ErrorCallback(osPathname, err); action == SkipNode {
-					return nil
-				}
-				return err
-			}
-
-			var osp string
-			if filepath.IsAbs(referent) {
-				osp = referent
-			} else {
-				osp = filepath.Join(filepath.Dir(osPathname), referent)
-			}
-
-			fi, err := os.Stat(osp)
-			if err != nil {
-				if action := options.ErrorCallback(osp, err); action == SkipNode {
-					return nil
-				}
-				return err
-			}
-			dirent.modeType = fi.Mode() & os.ModeType
+		skip, err := symlinkDirHelper(osPathname, dirent, options)
+		if err != nil || skip {
+			return err
 		}
 	}
 
@@ -304,36 +280,12 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 			// directory, but continue to its siblings. If received skipdir on a
 			// non-directory, stop processing remaining siblings.
 			if deChild.IsSymlink() {
-				// Only need to Stat entry if platform did not already have
-				// os.ModeDir set, such as would be the case for unix like
-				// operating systems. (This guard eliminates extra os.Stat check
-				// on Windows.)
-				if !deChild.IsDir() {
-					// Resolve symbolic link referent to determine whether node
-					// is directory or not.
-					referent, err := os.Readlink(osChildname)
-					if err != nil {
-						if action := options.ErrorCallback(osChildname, err); action == SkipNode {
-							continue // with next child
-						}
-						return err
-					}
-
-					var osp string
-					if filepath.IsAbs(referent) {
-						osp = referent
-					} else {
-						osp = filepath.Join(osPathname, referent)
-					}
-
-					fi, err := os.Stat(osp)
-					if err != nil {
-						if action := options.ErrorCallback(osp, err); action == SkipNode {
-							continue // with next child
-						}
-						return err
-					}
-					deChild.modeType = fi.Mode() & os.ModeType
+				var skip bool
+				if skip, err = symlinkDirHelper(osChildname, deChild, options); err != nil {
+					return err
+				}
+				if skip {
+					continue
 				}
 			}
 			if !deChild.IsDir() {
