@@ -232,6 +232,20 @@ func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
 	}
 }
 
+func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
+	const osDirname = "testdata_symlink_follow"
+
+	err := godirwalk.Walk(osDirname, &godirwalk.Options{
+		FollowSymbolicLinks: true,
+		Callback: func(osPathname string, dirent *godirwalk.Dirent) error {
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestPostChildrenCallback(t *testing.T) {
 	const osDirname = "testdata/dir5"
 
