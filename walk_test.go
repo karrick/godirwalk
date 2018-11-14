@@ -254,9 +254,9 @@ func TestPostChildrenCallback(t *testing.T) {
 	}
 
 	expected := []string{
-		"testdata/dir5/a2/a2a",
-		"testdata/dir5/a2",
-		"testdata/dir5",
+		filepath.FromSlash("testdata/dir5/a2/a2a"),
+		filepath.FromSlash("testdata/dir5/a2"),
+		filepath.FromSlash("testdata/dir5"),
 	}
 
 	if got, want := len(actual), len(expected); got != want {
