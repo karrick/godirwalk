@@ -7,17 +7,10 @@ import (
 	"testing"
 )
 
-func teardown(tb testing.TB, testDataRoot string) {
-	if err := os.RemoveAll(testDataRoot); err != nil {
-		tb.Error(err)
-	}
-}
-
 func setup(tb testing.TB) string {
-	testDataRoot, err := ioutil.TempDir(os.TempDir(), "godirwalk-")
+	root, err := ioutil.TempDir(os.TempDir(), "godirwalk-")
 
-	// Create files, creating directories along the way, then create symbolic links
-
+	// Create files, creating directories along the way.
 	files := []string{
 		"dir1/dir1a/file1a1",
 		"dir1/dir1a/skip",
@@ -39,10 +32,12 @@ func setup(tb testing.TB) string {
 	}
 
 	for _, pathname := range files {
-		pathname = filepath.Join(testDataRoot, filepath.FromSlash(pathname))
+		pathname = filepath.Join(root, filepath.FromSlash(pathname))
+
 		if err := os.MkdirAll(filepath.Dir(pathname), os.ModePerm); err != nil {
 			tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
 		}
+
 		if err = ioutil.WriteFile(pathname, []byte("some test data\n"), os.ModePerm); err != nil {
 			tb.Fatalf("cannot create file for test scaffolding: %s\n", err)
 		}
@@ -58,10 +53,12 @@ func setup(tb testing.TB) string {
 	}
 
 	for pathname, referent := range symlinks {
-		pathname = filepath.Join(testDataRoot, filepath.FromSlash(pathname))
+		pathname = filepath.Join(root, filepath.FromSlash(pathname))
+
 		if err := os.MkdirAll(filepath.Dir(pathname), os.ModePerm); err != nil {
 			tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
 		}
+
 		referent = filepath.FromSlash(referent)
 		if err := os.Symlink(referent, pathname); err != nil {
 			tb.Fatalf("cannot create symbolic link for test scaffolding: %s\n", err)
@@ -74,15 +71,22 @@ func setup(tb testing.TB) string {
 	}
 
 	for _, pathname := range extraDirs {
-		pathname = filepath.Join(testDataRoot, filepath.FromSlash(pathname))
+		pathname = filepath.Join(root, filepath.FromSlash(pathname))
+
 		if err := os.MkdirAll(pathname, os.ModePerm); err != nil {
 			tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
 		}
 	}
 
-	if err := os.MkdirAll(filepath.Join(testDataRoot, filepath.FromSlash("dir6/noaccess")), 0); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), 0); err != nil {
 		tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
 	}
 
-	return testDataRoot
+	return root
+}
+
+func teardown(tb testing.TB, root string) {
+	if err := os.RemoveAll(root); err != nil {
+		tb.Error(err)
+	}
 }
