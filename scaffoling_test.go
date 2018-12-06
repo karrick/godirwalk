@@ -80,5 +80,9 @@ func setup(tb testing.TB) string {
 		}
 	}
 
+	if err := os.MkdirAll(filepath.Join(testDataRoot, filepath.FromSlash("dir6/noaccess")), 0); err != nil {
+		tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
+	}
+
 	return testDataRoot
 }

@@ -123,6 +123,42 @@ func TestWalkSkipDir(t *testing.T) {
 	})
 }
 
+func TestWalkNoAccess(t *testing.T) {
+	testDataRoot := setup(t)
+	defer teardown(t, testDataRoot)
+
+	var actual []string
+
+	err := Walk(testDataRoot, &Options{
+		ScratchBuffer: make([]byte, testScratchBufferSize),
+		Callback: func(osPathname string, _ *Dirent) error {
+			t.Logf("walk in: %s", osPathname)
+			return nil
+		},
+		ErrorCallback: func(osChildname string, err error) ErrorAction {
+			actual = append(actual, osChildname)
+			return SkipNode
+		},
+	})
+	if err != nil {
+		t.Errorf("(GOT): %v; (WNT): %v", err, nil)
+	}
+
+	expected := []string{
+		filepath.Join(testDataRoot, "dir6/noaccess"),
+	}
+
+	if got, want := len(actual), len(expected); got != want {
+		t.Fatalf("\n(GOT)\n\t%#v\n(WNT)\n\t%#v", actual, expected)
+	}
+
+	for i := 0; i < len(actual); i++ {
+		if got, want := actual[i], expected[i]; got != want {
+			t.Errorf("(GOT) %v; (WNT) %v", got, want)
+		}
+	}
+}
+
 func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
 	testDataRoot := setup(t)
 	defer teardown(t, testDataRoot)
