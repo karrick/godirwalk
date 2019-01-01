@@ -53,6 +53,18 @@ type Options struct {
 	// that refer to a directory.
 	FollowSymbolicLinks bool
 
+	// NoHidden (only UNIX) specifies whether Walk will follow hidden directories.
+	// When set to false or left as its zero-value, Walk will invoke the callback
+	// function and traverse into hidden directories too. When set to true, Walk
+	// will not traverse to hidden directories.
+	NoHidden bool
+
+	// Ignore represents a list of names for directories that should be ignored.
+	// When Walk is about to traverse a directory and directories name the same
+	// to a string in the Ignore list then that direcory with all its descendants
+	// is ignored. If is left empty as it is, it will be ignored by callback function.
+	Ignore []string
+
 	// Unsorted controls whether or not Walk will sort the immediate descendants
 	// of a directory by their relative names prior to visiting each of those
 	// entries.
@@ -280,6 +292,16 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	}
 
 	if !dirent.IsDir() {
+		return nil
+	}
+
+	for _, el := range options.Ignore {
+		if dirent.name == el {
+			return nil
+		}
+	}
+
+	if string(dirent.name[0]) == "." && options.NoHidden {
 		return nil
 	}
 
