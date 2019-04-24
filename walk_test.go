@@ -280,8 +280,8 @@ func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
 	err := Walk(filepath.Join(root, "dir7"), &Options{
 		FollowSymbolicLinks: true,
 		Callback: func(osPathname string, dirent *Dirent) error {
-            actual = append(actual, filepath.ToSlash(osPathname))
-            return nil
+			actual = append(actual, filepath.ToSlash(osPathname))
+			return nil
 		},
 	})
 	if err != nil {
@@ -290,14 +290,13 @@ func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
 
 	expected := []string{
 		filepath.Join(root, "dir7"),
-        filepath.Join(root, "dir7", "a"),
+		filepath.Join(root, "dir7", "a"),
 		filepath.Join(root, "dir7", "a", "x"),
-        filepath.Join(root, "dir7", "a", "x", "y"),
+		filepath.Join(root, "dir7", "a", "x", "y"),
 		filepath.Join(root, "dir7", "b"),
 		filepath.Join(root, "dir7", "b", "y"),
 		filepath.Join(root, "dir7", "z"),
 	}
-
 
 	if got, want := len(actual), len(expected); got != want {
 		t.Fatalf("\n(GOT)\n\t%#v\n(WNT)\n\t%#v", actual, expected)
