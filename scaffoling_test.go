@@ -28,6 +28,7 @@ func setup(tb testing.TB) string {
 		"dir5/a2/a2b.txt",
 		"dir6/bravo.txt",
 		"dir6/code/123.txt",
+		"dir7/z",
 		"file3",
 	}
 
@@ -47,6 +48,8 @@ func setup(tb testing.TB) string {
 		"dir3/skip":                "zzz",
 		"dir4/symlinkToDirectory":  "zzz",
 		"dir4/symlinkToFile":       "aaa.txt",
+		"dir7/a/x": "../b",
+		"dir7/b/y": "../z",
 		"symlinks/dir-symlink":     "../symlinks",
 		"symlinks/file-symlink":    "../file3",
 		"symlinks/invalid-symlink": "/non/existing/file",

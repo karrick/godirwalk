@@ -272,6 +272,44 @@ func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
 	}
 }
 
+func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
+	root := setup(t)
+	defer teardown(t, root)
+
+	var actual []string
+	err := Walk(filepath.Join(root, "dir7"), &Options{
+		FollowSymbolicLinks: true,
+		Callback: func(osPathname string, dirent *Dirent) error {
+            actual = append(actual, filepath.ToSlash(osPathname))
+            return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{
+		filepath.Join(root, "dir7"),
+        filepath.Join(root, "dir7", "a"),
+		filepath.Join(root, "dir7", "a", "x"),
+        filepath.Join(root, "dir7", "a", "x", "y"),
+		filepath.Join(root, "dir7", "b"),
+		filepath.Join(root, "dir7", "b", "y"),
+		filepath.Join(root, "dir7", "z"),
+	}
+
+
+	if got, want := len(actual), len(expected); got != want {
+		t.Fatalf("\n(GOT)\n\t%#v\n(WNT)\n\t%#v", actual, expected)
+	}
+
+	for i := 0; i < len(actual); i++ {
+		if got, want := actual[i], expected[i]; got != want {
+			t.Errorf("(GOT) %v; (WNT) %v", got, want)
+		}
+	}
+}
+
 func TestPostChildrenCallback(t *testing.T) {
 	root := setup(t)
 	defer teardown(t, root)
