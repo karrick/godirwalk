@@ -10,6 +10,8 @@ In short, why do I use this library?
 1. It's more easy to use than `filepath.Walk`.
 1. It's more flexible than `filepath.Walk`.
 
+[![Build Status](https://dev.azure.com/microsoft0235/microsoft/_apis/build/status/karrick.godirwalk?branchName=master)](https://dev.azure.com/microsoft0235/microsoft/_build/latest?definitionId=1&branchName=master)
+
 ## Usage Example
 
 Additional examples are provided in the `examples/` subdirectory.
