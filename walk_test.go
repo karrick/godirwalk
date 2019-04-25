@@ -9,6 +9,7 @@ import (
 const testScratchBufferSize = 16 * 1024
 
 func helperFilepathWalk(tb testing.TB, osDirname string) []string {
+	tb.Helper()
 	var entries []string
 	err := filepath.Walk(osDirname, func(osPathname string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -30,6 +31,7 @@ func helperFilepathWalk(tb testing.TB, osDirname string) []string {
 }
 
 func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
+	tb.Helper()
 	var entries []string
 	err := Walk(osDirname, &Options{
 		Callback: func(osPathname string, dirent *Dirent) error {
