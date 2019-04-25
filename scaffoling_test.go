@@ -81,7 +81,7 @@ func setup(tb testing.TB) string {
 		}
 	}
 
-	if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), 0); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), 0 /* no permissions */); err != nil {
 		tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
 	}
 
@@ -89,7 +89,7 @@ func setup(tb testing.TB) string {
 }
 
 func teardown(tb testing.TB, root string) {
-	if err := os.Chmod(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), 0700); err != nil {
+	if err := os.Chmod(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
 		tb.Fatalf("cannot change permission to delete dir6/noaccess for test scaffolding: %s\n", err)
 	}
 	if err := os.RemoveAll(root); err != nil {
