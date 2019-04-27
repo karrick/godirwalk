@@ -8,7 +8,12 @@ import (
 )
 
 func setup(tb testing.TB) string {
+	tb.Helper()
+
 	root, err := ioutil.TempDir(os.TempDir(), "godirwalk-")
+	if err != nil {
+		tb.Fatal(err)
+	}
 
 	// Create files, creating directories along the way.
 	files := []string{
@@ -55,15 +60,15 @@ func setup(tb testing.TB) string {
 		"symlinks/invalid-symlink": "/non/existing/file",
 	}
 
-	for pathname, referent := range symlinks {
-		pathname = filepath.Join(root, filepath.FromSlash(pathname))
+	for newname, oldname := range symlinks {
+		newname = filepath.Join(root, filepath.FromSlash(newname))
 
-		if err := os.MkdirAll(filepath.Dir(pathname), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
 			tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
 		}
 
-		referent = filepath.FromSlash(referent)
-		if err := os.Symlink(referent, pathname); err != nil {
+		oldname = filepath.FromSlash(oldname)
+		if err := os.Symlink(oldname, newname); err != nil {
 			tb.Fatalf("cannot create symbolic link for test scaffolding: %s\n", err)
 		}
 	}
