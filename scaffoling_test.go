@@ -15,7 +15,7 @@ func setup(tb testing.TB) string {
 		tb.Fatal(err)
 	}
 
-	// Create files, creating directories along the way.
+	// Create files, creating parent directories along the way.
 	files := []string{
 		"dir1/dir1a/file1a1",
 		"dir1/dir1a/skip",
@@ -49,25 +49,27 @@ func setup(tb testing.TB) string {
 		}
 	}
 
-	symlinks := map[string]string{
-		"dir3/skip":                "zzz",
-		"dir4/symlinkToDirectory":  "zzz",
-		"dir4/symlinkToFile":       "aaa.txt",
-		"dir7/a/x":                 "../b",
-		"dir7/b/y":                 "../z",
-		"symlinks/dir-symlink":     "../symlinks",
-		"symlinks/file-symlink":    "../file3",
-		"symlinks/invalid-symlink": "/non/existing/file",
+	symlinks := []struct {
+		newname, oldname string
+	}{
+		{"dir3/skip", "zzz"},
+		{"dir4/symlinkToDirectory", "zzz"},
+		{"dir4/symlinkToFile", "aaa.txt"},
+		{"dir7/a/x", "../b"},
+		{"dir7/b/y", "../z"},
+		{"symlinks/dir-symlink", "../symlinks"},
+		{"symlinks/file-symlink", "../file3"},
+		{"symlinks/invalid-symlink", "/non/existing/file"},
 	}
 
-	for newname, oldname := range symlinks {
-		newname = filepath.Join(root, filepath.FromSlash(newname))
+	for _, entry := range symlinks {
+		newname := filepath.Join(root, filepath.FromSlash(entry.newname))
 
 		if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
 			tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
 		}
 
-		oldname = filepath.FromSlash(oldname)
+		oldname := filepath.FromSlash(entry.oldname)
 		if err := os.Symlink(oldname, newname); err != nil {
 			tb.Fatalf("cannot create symbolic link for test scaffolding: %s\n", err)
 		}
@@ -86,16 +88,20 @@ func setup(tb testing.TB) string {
 		}
 	}
 
-	if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), 0 /* no permissions */); err != nil {
-		tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
+	if false {
+		if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), 0 /* no permissions */); err != nil {
+			tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
+		}
 	}
 
 	return root
 }
 
 func teardown(tb testing.TB, root string) {
-	if err := os.Chmod(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
-		tb.Fatalf("cannot change permission to delete dir6/noaccess for test scaffolding: %s\n", err)
+	if false {
+		if err := os.Chmod(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
+			tb.Fatalf("cannot change permission to delete dir6/noaccess for test scaffolding: %s\n", err)
+		}
 	}
 	if err := os.RemoveAll(root); err != nil {
 		tb.Error(err)
