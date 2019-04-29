@@ -61,14 +61,11 @@ func symlinkAbs(oldname, newname string) error {
 }
 
 func TestWalkSkipDir(t *testing.T) {
-	root := setup(t)
-	defer teardown(t, root)
-
 	// Ensure the results from calling filepath.Walk exactly match the results
 	// for calling this library's walk function.
 
 	test := func(t *testing.T, osDirname string) {
-		osDirname = filepath.Join(root, osDirname)
+		osDirname = filepath.Join(rootDir, osDirname)
 		expected := helperFilepathWalk(t, osDirname)
 		actual := helperGodirwalkWalk(t, osDirname)
 
@@ -103,14 +100,14 @@ func TestWalkSkipDir(t *testing.T) {
 	})
 
 	t.Run("SkipDirOnSymlink", func(t *testing.T) {
-		osDirname := filepath.Join(root, "dir3")
+		osDirname := filepath.Join(rootDir, "dir3")
 		actual := helperGodirwalkWalk(t, osDirname)
 
 		expected := []string{
-			filepath.Join(root, "dir3"),
-			filepath.Join(root, "dir3/aaa.txt"),
-			filepath.Join(root, "dir3/zzz"),
-			filepath.Join(root, "dir3/zzz/aaa.txt"),
+			filepath.Join(rootDir, "dir3"),
+			filepath.Join(rootDir, "dir3/aaa.txt"),
+			filepath.Join(rootDir, "dir3/zzz"),
+			filepath.Join(rootDir, "dir3/zzz/aaa.txt"),
 		}
 
 		if got, want := len(actual), len(expected); got != want {
@@ -126,12 +123,9 @@ func TestWalkSkipDir(t *testing.T) {
 }
 
 func TestWalkNoAccess(t *testing.T) {
-	root := setup(t)
-	defer teardown(t, root)
-
 	var actual []string
 
-	err := Walk(root, &Options{
+	err := Walk(rootDir, &Options{
 		ScratchBuffer: make([]byte, testScratchBufferSize),
 		Callback: func(osPathname string, _ *Dirent) error {
 			// t.Logf("walk in: %s", osPathname)
@@ -147,7 +141,7 @@ func TestWalkNoAccess(t *testing.T) {
 	}
 
 	expected := []string{
-		filepath.Join(root, "dir6/noaccess"),
+		filepath.Join(rootDir, "dir6/noaccess"),
 	}
 
 	if got, want := len(actual), len(expected); got != want {
@@ -162,13 +156,10 @@ func TestWalkNoAccess(t *testing.T) {
 }
 
 func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
-	root := setup(t)
-	defer teardown(t, root)
+	osDirname := filepath.Join(rootDir, "dir4")
+	symlink := filepath.Join(rootDir, "dir4/symlinkToAbsDirectory")
 
-	osDirname := filepath.Join(root, "dir4")
-	symlink := filepath.Join(root, "dir4/symlinkToAbsDirectory")
-
-	if err := symlinkAbs(filepath.Join(root, "dir4/zzz"), symlink); err != nil {
+	if err := symlinkAbs(filepath.Join(rootDir, "dir4/zzz"), symlink); err != nil {
 		t.Fatal(err)
 	}
 
@@ -196,13 +187,13 @@ func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
 	}
 
 	expected := []string{
-		filepath.Join(root, "dir4"),
-		filepath.Join(root, "dir4/aaa.txt"),
-		filepath.Join(root, "dir4/symlinkToAbsDirectory"),
-		filepath.Join(root, "dir4/symlinkToDirectory"),
-		filepath.Join(root, "dir4/symlinkToFile"),
-		filepath.Join(root, "dir4/zzz"),
-		filepath.Join(root, "dir4/zzz/aaa.txt"),
+		filepath.Join(rootDir, "dir4"),
+		filepath.Join(rootDir, "dir4/aaa.txt"),
+		filepath.Join(rootDir, "dir4/symlinkToAbsDirectory"),
+		filepath.Join(rootDir, "dir4/symlinkToDirectory"),
+		filepath.Join(rootDir, "dir4/symlinkToFile"),
+		filepath.Join(rootDir, "dir4/zzz"),
+		filepath.Join(rootDir, "dir4/zzz/aaa.txt"),
 	}
 
 	if got, want := len(actual), len(expected); got != want {
@@ -217,13 +208,10 @@ func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
 }
 
 func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
-	root := setup(t)
-	defer teardown(t, root)
+	osDirname := filepath.Join(rootDir, "dir4")
+	symlink := filepath.Join(rootDir, "dir4/symlinkToAbsDirectory")
 
-	osDirname := filepath.Join(root, "dir4")
-	symlink := filepath.Join(root, "dir4/symlinkToAbsDirectory")
-
-	if err := symlinkAbs(filepath.Join(root, "dir4/zzz"), symlink); err != nil {
+	if err := symlinkAbs(filepath.Join(rootDir, "dir4/zzz"), symlink); err != nil {
 		t.Fatal(err)
 	}
 
@@ -252,15 +240,15 @@ func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
 	}
 
 	expected := []string{
-		filepath.Join(root, "dir4"),
-		filepath.Join(root, "dir4/aaa.txt"),
-		filepath.Join(root, "dir4/symlinkToAbsDirectory"),
-		filepath.Join(root, "dir4/symlinkToAbsDirectory/aaa.txt"),
-		filepath.Join(root, "dir4/symlinkToDirectory"),
-		filepath.Join(root, "dir4/symlinkToDirectory/aaa.txt"),
-		filepath.Join(root, "dir4/symlinkToFile"),
-		filepath.Join(root, "dir4/zzz"),
-		filepath.Join(root, "dir4/zzz/aaa.txt"),
+		filepath.Join(rootDir, "dir4"),
+		filepath.Join(rootDir, "dir4/aaa.txt"),
+		filepath.Join(rootDir, "dir4/symlinkToAbsDirectory"),
+		filepath.Join(rootDir, "dir4/symlinkToAbsDirectory/aaa.txt"),
+		filepath.Join(rootDir, "dir4/symlinkToDirectory"),
+		filepath.Join(rootDir, "dir4/symlinkToDirectory/aaa.txt"),
+		filepath.Join(rootDir, "dir4/symlinkToFile"),
+		filepath.Join(rootDir, "dir4/zzz"),
+		filepath.Join(rootDir, "dir4/zzz/aaa.txt"),
 	}
 
 	if got, want := len(actual), len(expected); got != want {
@@ -275,11 +263,8 @@ func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
 }
 
 func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
-	root := setup(t)
-	defer teardown(t, root)
-
 	var actual []string
-	err := Walk(filepath.Join(root, "dir7"), &Options{
+	err := Walk(filepath.Join(rootDir, "dir7"), &Options{
 		FollowSymbolicLinks: true,
 		Callback: func(osPathname string, dirent *Dirent) error {
 			actual = append(actual, filepath.ToSlash(osPathname))
@@ -291,13 +276,13 @@ func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
 	}
 
 	expected := []string{
-		filepath.Join(root, "dir7"),
-		filepath.Join(root, "dir7", "a"),
-		filepath.Join(root, "dir7", "a", "x"),
-		filepath.Join(root, "dir7", "a", "x", "y"),
-		filepath.Join(root, "dir7", "b"),
-		filepath.Join(root, "dir7", "b", "y"),
-		filepath.Join(root, "dir7", "z"),
+		filepath.Join(rootDir, "dir7"),
+		filepath.Join(rootDir, "dir7", "a"),
+		filepath.Join(rootDir, "dir7", "a", "x"),
+		filepath.Join(rootDir, "dir7", "a", "x", "y"),
+		filepath.Join(rootDir, "dir7", "b"),
+		filepath.Join(rootDir, "dir7", "b", "y"),
+		filepath.Join(rootDir, "dir7", "z"),
 	}
 
 	if got, want := len(actual), len(expected); got != want {
@@ -312,10 +297,7 @@ func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
 }
 
 func TestPostChildrenCallback(t *testing.T) {
-	root := setup(t)
-	defer teardown(t, root)
-
-	osDirname := filepath.Join(root, "dir5")
+	osDirname := filepath.Join(rootDir, "dir5")
 
 	var actual []string
 
@@ -336,9 +318,9 @@ func TestPostChildrenCallback(t *testing.T) {
 	}
 
 	expected := []string{
-		filepath.Join(root, "dir5/a2/a2a"),
-		filepath.Join(root, "dir5/a2"),
-		filepath.Join(root, "dir5"),
+		filepath.Join(rootDir, "dir5/a2/a2a"),
+		filepath.Join(rootDir, "dir5/a2"),
+		filepath.Join(rootDir, "dir5"),
 	}
 
 	if got, want := len(actual), len(expected); got != want {

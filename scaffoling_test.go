@@ -1,18 +1,43 @@
 package godirwalk
 
 import (
+	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-func setup(tb testing.TB) string {
-	tb.Helper()
+var rootDir string
 
-	root, err := ioutil.TempDir(os.TempDir(), "godirwalk-")
+func TestMain(m *testing.M) {
+	flag.Parse()
+
+	// All tests use the same directory test scaffolding.  Create the directory
+	// hierarchy, run the tests, then remove the root directory of the test
+	// scaffolding.
+	if err := setup(); err != nil {
+		fmt.Fprintf(os.Stderr, "setup: %s\n", err)
+		os.Exit(1)
+	}
+
+	code := m.Run()
+
+	if err := teardown(); err != nil {
+		fmt.Fprintf(os.Stderr, "teardown: %s\n", err)
+		os.Exit(1)
+	}
+
+	os.Exit(code)
+}
+
+func setup() error {
+	var err error
+
+	rootDir, err = ioutil.TempDir(os.TempDir(), "godirwalk-")
 	if err != nil {
-		tb.Fatal(err)
+		return err
 	}
 
 	// Create files, creating parent directories along the way.
@@ -38,14 +63,14 @@ func setup(tb testing.TB) string {
 	}
 
 	for _, pathname := range files {
-		pathname = filepath.Join(root, filepath.FromSlash(pathname))
+		pathname = filepath.Join(rootDir, filepath.FromSlash(pathname))
 
 		if err := os.MkdirAll(filepath.Dir(pathname), os.ModePerm); err != nil {
-			tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
+			return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 		}
 
 		if err = ioutil.WriteFile(pathname, []byte("some test data\n"), os.ModePerm); err != nil {
-			tb.Fatalf("cannot create file for test scaffolding: %s\n", err)
+			return fmt.Errorf("cannot create file for test scaffolding: %s", err)
 		}
 	}
 
@@ -57,21 +82,22 @@ func setup(tb testing.TB) string {
 		{"dir4/symlinkToFile", "aaa.txt"},
 		{"dir7/a/x", "../b"},
 		{"dir7/b/y", "../z"},
-		{"symlinks/dir-symlink", "../symlinks"},
+		{"symlinks/dir-symlink", "../symlinks"}, // infinite loop of symlinks
 		{"symlinks/file-symlink", "../file3"},
 		{"symlinks/invalid-symlink", "/non/existing/file"},
 	}
 
 	for _, entry := range symlinks {
-		newname := filepath.Join(root, filepath.FromSlash(entry.newname))
+		newname := filepath.Join(rootDir, filepath.FromSlash(entry.newname))
 
 		if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
-			tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
+			return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 		}
 
 		oldname := filepath.FromSlash(entry.oldname)
+
 		if err := os.Symlink(oldname, newname); err != nil {
-			tb.Fatalf("cannot create symbolic link for test scaffolding: %s\n", err)
+			return fmt.Errorf("cannot create symbolic link for test scaffolding: %s", err)
 		}
 	}
 
@@ -81,29 +107,26 @@ func setup(tb testing.TB) string {
 	}
 
 	for _, pathname := range extraDirs {
-		pathname = filepath.Join(root, filepath.FromSlash(pathname))
+		pathname = filepath.Join(rootDir, filepath.FromSlash(pathname))
 
 		if err := os.MkdirAll(pathname, os.ModePerm); err != nil {
-			tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
+			return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 		}
 	}
 
-	if false {
-		if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), 0 /* no permissions */); err != nil {
-			tb.Fatalf("cannot create directory for test scaffolding: %s\n", err)
-		}
+	if err := os.MkdirAll(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")), 0 /* no permissions */); err != nil {
+		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 	}
 
-	return root
+	return nil
 }
 
-func teardown(tb testing.TB, root string) {
-	if false {
-		if err := os.Chmod(filepath.Join(root, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
-			tb.Fatalf("cannot change permission to delete dir6/noaccess for test scaffolding: %s\n", err)
-		}
+func teardown() error {
+	if err := os.Chmod(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
+		return fmt.Errorf("cannot change permission to delete dir6/noaccess for test scaffolding: %s", err)
 	}
-	if err := os.RemoveAll(root); err != nil {
-		tb.Error(err)
+	if err := os.RemoveAll(rootDir); err != nil {
+		return err
 	}
+	return nil
 }
