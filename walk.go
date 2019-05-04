@@ -74,7 +74,7 @@ type Options struct {
 	// system node it encounters.
 	Callback WalkFunc
 
-	// PostChildrenCallback is an option function that Walk will invoke for
+	// PostChildrenCallback is an optional function that Walk will invoke for
 	// every file system directory it encounters after its children have been
 	// processed.
 	PostChildrenCallback WalkFunc
@@ -86,6 +86,22 @@ type Options struct {
 	// MinimumScratchBufferSize, then a buffer with DefaultScratchBufferSize
 	// bytes will be created and used once per Walk invocation.
 	ScratchBuffer []byte
+
+	// SkipPathCallback is an optional function that Walk will invoke before it
+	// stats a path or follows a symbolic link.  SkipPathCallback can be used to exclude
+	// a directory from walking, such as /proc or /sys.
+	// If SkipPathCallback returns true on a given pathname, then Walk will skip the file.
+	// If SkipPathCallback returns false, then Walk will walk the file as normal.
+	// If SkipPathCallback is nil, then Walk will run as normal.
+	SkipPathCallback func(pathname string) bool
+
+	// SkipSymbolicLinkCallback is an optional function that Walk will invoke before it
+	// follows a symbolic link.  SkipTargetCallback can be use to avoid loops,
+	// such as when a symbolic link target is "..".
+	// If SkipSymbolicLinkCallback returns true on a given pathname and target, then Walk will skip the symbolic link.
+	// If SkipSymbolicLinkCallback returns false, then Walk will follow the symbolic link as normal.
+	// If SkipSymbolicLinkCallback is nil, then Walk will run as normal.
+	SkipSymbolicLinkCallback func(pathname string, target string) bool
 }
 
 // ErrorAction defines a set of actions the Walk function could take based on
@@ -176,6 +192,10 @@ type WalkFunc func(osPathname string, directoryEntry *Dirent) error
 func Walk(pathname string, options *Options) error {
 	pathname = filepath.Clean(pathname)
 
+	if options.SkipPathCallback != nil && options.SkipPathCallback(pathname) {
+		return nil // skipping root
+	}
+
 	var fi os.FileInfo
 	var err error
 
@@ -199,6 +219,17 @@ func Walk(pathname string, options *Options) error {
 	dirent := &Dirent{
 		name:     filepath.Base(pathname),
 		modeType: mode & os.ModeType,
+	}
+	if dirent.IsSymlink() && options.SkipSymbolicLinkCallback != nil {
+		// Read the target of the link.
+		target, err := os.Readlink(pathname)
+		if err != nil {
+			return err
+		}
+		// If callback returns true that indicates the link should be skipped, then return.
+		if options.SkipSymbolicLinkCallback(pathname, target) {
+			return nil
+		}
 	}
 
 	// If ErrorCallback is nil, set to a default value that halts the walk
@@ -227,6 +258,7 @@ func defaultErrorCallback(_ string, _ error) ErrorAction { return Halt }
 // walk recursively traverses the file system node specified by pathname and the
 // Dirent.
 func walk(osPathname string, dirent *Dirent, options *Options) error {
+
 	err := options.Callback(osPathname, dirent)
 	if err != nil {
 		if err == filepath.SkipDir {
@@ -243,8 +275,25 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	// For instance, it could have both the symlink bit and the directory bit
 	// set indicating it's a symlink to a directory.
 	if dirent.IsSymlink() {
+
+		// If not following symbolic links, then return.
 		if !options.FollowSymbolicLinks {
 			return nil
+		}
+
+		if options.SkipSymbolicLinkCallback != nil {
+			// Read the target of the link.
+			target, err := os.Readlink(osPathname)
+			if err != nil {
+				if action := options.ErrorCallback(osPathname, err); action == SkipNode {
+					return nil
+				}
+				return err
+			}
+			// If callback returns true that indicates the link should be skipped, then return.
+			if options.SkipSymbolicLinkCallback(osPathname, target) {
+				return nil
+			}
 		}
 		skip, err := symlinkDirHelper(osPathname, dirent, options)
 		if err != nil || skip {
@@ -271,6 +320,9 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 
 	for _, deChild := range deChildren {
 		osChildname := filepath.Join(osPathname, deChild.name)
+		if options.SkipPathCallback != nil && options.SkipPathCallback(osChildname) {
+			continue // skip this child without stat or following symbolic link
+		}
 		err = walk(osChildname, deChild, options)
 		if err != nil {
 			if err != filepath.SkipDir {

@@ -3,6 +3,7 @@ package godirwalk
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -351,6 +352,117 @@ func TestPostChildrenCallback(t *testing.T) {
 			t.Errorf("(GOT) %v; (WNT) %v", got, want)
 		}
 	}
+}
+
+func TestSkipCallbacks(t *testing.T) {
+	root := setup(t)
+	defer teardown(t, root)
+
+	test := func(osDirname string, skipPathCallback func(pathname string) bool, skipSymbolicLinkCallback func(pathname string, target string) bool) ([]string, error) {
+		var actual []string
+		err := Walk(osDirname, &Options{
+			Callback: func(osPathname string, dirent *Dirent) error {
+				actual = append(actual, filepath.ToSlash(osPathname))
+				return nil
+			},
+			SkipPathCallback:         skipPathCallback,
+			FollowSymbolicLinks:      true,
+			SkipSymbolicLinkCallback: skipSymbolicLinkCallback,
+		})
+		return actual, err
+	}
+
+	t.Run("SymbolicLinks", func(t *testing.T) {
+
+		actual, err := test(
+			filepath.Join(root, "dir7"),
+			func(pathname string) bool { return filepath.Base(pathname) == "b" },
+			func(pathname string, target string) bool { return false },
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := []string{
+			filepath.Join(root, "dir7"),
+			filepath.Join(root, "dir7", "a"),
+			filepath.Join(root, "dir7", "a", "x"),
+			filepath.Join(root, "dir7", "a", "x", "y"),
+			filepath.Join(root, "dir7", "z"),
+		}
+
+		if got, want := len(actual), len(expected); got != want {
+			t.Fatalf("\n(GOT)\n\t%#v\n(WNT)\n\t%#v", actual, expected)
+		}
+
+		for i := 0; i < len(actual); i++ {
+			if got, want := actual[i], expected[i]; got != want {
+				t.Errorf("(GOT) %v; (WNT) %v", got, want)
+			}
+		}
+
+	})
+
+	t.Run("SkipSomeSymbolicLinks", func(t *testing.T) {
+
+		actual, err := test(
+			filepath.Join(root, "dir7"),
+			func(pathname string) bool { return filepath.Base(pathname) == "b" },
+			func(pathname string, target string) bool { return strings.HasPrefix(target, "..") },
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := []string{
+			filepath.Join(root, "dir7"),
+			filepath.Join(root, "dir7", "a"),
+			filepath.Join(root, "dir7", "a", "x"),
+			filepath.Join(root, "dir7", "z"),
+		}
+
+		if got, want := len(actual), len(expected); got != want {
+			t.Fatalf("\n(GOT)\n\t%#v\n(WNT)\n\t%#v", actual, expected)
+		}
+
+		for i := 0; i < len(actual); i++ {
+			if got, want := actual[i], expected[i]; got != want {
+				t.Errorf("(GOT) %v; (WNT) %v", got, want)
+			}
+		}
+
+	})
+
+	t.Run("NoSymbolicLinks", func(t *testing.T) {
+
+		actual, err := test(
+			filepath.Join(root, "dir5"),
+			func(pathname string) bool { return filepath.Base(pathname) == "a2a" },
+			func(pathname string, target string) bool { return false },
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := []string{
+			filepath.Join(root, "dir5"),
+			filepath.Join(root, "dir5/a1.txt"),
+			filepath.Join(root, "dir5/a2"),
+			filepath.Join(root, "dir5/a2/a2b.txt"),
+		}
+
+		if got, want := len(actual), len(expected); got != want {
+			t.Fatalf("\n(GOT)\n\t%#v\n(WNT)\n\t%#v", actual, expected)
+		}
+
+		for i := 0; i < len(actual); i++ {
+			if got, want := actual[i], expected[i]; got != want {
+				t.Errorf("(GOT) %v; (WNT) %v", got, want)
+			}
+		}
+
+	})
+
 }
 
 var goPrefix = filepath.Join(os.Getenv("GOPATH"), "src")
