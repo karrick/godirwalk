@@ -23,5 +23,5 @@ steps:
   - task: Go@0
     inputs:
       command: test
-      arguments: ./...
+      arguments: -v ./...
     displayName: 'Execute Tests'
