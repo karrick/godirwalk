@@ -14,15 +14,13 @@ func readdirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	var entries Dirents
-
 	fd := int(dh.Fd())
 
 	if len(scratchBuffer) < MinimumScratchBufferSize {
 		scratchBuffer = make([]byte, DefaultScratchBufferSize)
 	}
 
+	var entries Dirents
 	var de *syscall.Dirent
 
 	for {
@@ -38,10 +36,10 @@ func readdirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 		buf := scratchBuffer[:n]
 		for len(buf) > 0 {
 			de = (*syscall.Dirent)(unsafe.Pointer(&buf[0])) // point entry to first syscall.Dirent in buffer
-			buf = buf[de.Reclen:]                           // advance buffer
+			buf = buf[de.Reclen:]                           // advance buffer for next iteration through loop
 
 			if inoFromDirent(de) == 0 {
-				continue // this item has been deleted, but not yet removed from directory
+				continue // this item has been deleted, but its entry not yet removed from directory listing
 			}
 
 			nameSlice := nameFromDirent(de)
@@ -77,17 +75,19 @@ func readdirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 					_ = dh.Close() // ignore potential error returned by Close
 					return nil, err
 				}
-				// We only care about the bits that identify the type of a file
-				// system node, and can ignore append, exclusive, temporary,
-				// setuid, setgid, permission bits, and sticky bits, which are
-				// coincident to the bits that declare type of the file system
-				// node.
+				// Even though the stat provided all file mode bits, we want to
+				// ensure same values returned to caller regardless of whether
+				// we obtained file mode bits from syscall or stat call.
+				// Therefore mask out the additional file mode bits that are
+				// provided by stat but not by the syscall, so users can rely on
+				// their values.
 				mode = fi.Mode() & os.ModeType
 			}
 
 			entries = append(entries, &Dirent{name: osChildname, modeType: mode})
 		}
 	}
+
 	if err = dh.Close(); err != nil {
 		return nil, err
 	}
