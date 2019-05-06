@@ -21,7 +21,7 @@ func helperFilepathWalk(tb testing.TB, osDirname string) []string {
 		// filepath.Walk invokes callback function with a slashed version of the
 		// pathname, while godirwalk invokes callback function with the
 		// os-specific pathname separator.
-		entries = append(entries, filepath.ToSlash(osPathname))
+		entries = append(entries, filepath.FromSlash(osPathname))
 		return nil
 	})
 	if err != nil {
@@ -41,7 +41,7 @@ func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
 			// filepath.Walk invokes callback function with a slashed version of
 			// the pathname, while godirwalk invokes callback function with the
 			// os-specific pathname separator.
-			entries = append(entries, osPathname) //.ToSlash(osPathname))
+			entries = append(entries, filepath.FromSlash(osPathname))
 			return nil
 		},
 		ScratchBuffer: make([]byte, testScratchBufferSize),
@@ -76,6 +76,8 @@ func TestWalkSkipDir(t *testing.T) {
 		for i := 0; i < len(actual); i++ {
 			if got, want := actual[i], expected[i]; got != want {
 				t.Errorf("(GOT) %v; (WNT) %v", got, want)
+				// } else {
+				// 	t.Log(got)
 			}
 		}
 	}
