@@ -16,6 +16,15 @@ variables:
   modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
 
 steps:
+  - task: GoTool@0
+    displayName: 'Use Go 1.11'
+    inputs:
+      version: 1.11
+  - task: Go@0
+    inputs:
+      command: test
+      arguments: ./...
+    displayName: 'Execute Tests'
 # - script: |
 #     mkdir -p '$(GOBIN)'
 #     mkdir -p '$(GOPATH)/pkg'
@@ -26,8 +35,8 @@ steps:
 #     echo '##vso[task.prependpath]$(GOBIN)'
 #     echo '##vso[task.prependpath]$(GOROOT)/bin'
 #   displayName: 'Set up the Go workspace'
-- script: |
-    go version
-    go test -v ./...
-  workingDirectory: '$(modulePath)'
-  displayName: 'Test'
+# - script: |
+#     go version
+#     go test -v ./...
+#   workingDirectory: '$(modulePath)'
+#   displayName: 'Test'
