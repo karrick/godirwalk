@@ -114,8 +114,17 @@ func setup() error {
 		}
 	}
 
-	if err := os.MkdirAll(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")), 0 /* no permissions */); err != nil {
+	fn := filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess"))
+	fm := os.FileMode(0)
+	if err := os.MkdirAll(fn, fm); err != nil {
 		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
+	}
+	fi, err := os.Lstat(fn)
+	if err != nil {
+		return fmt.Errorf("cannot stat for test scaffolding: %s", err)
+	}
+	if got, want := fi.Mode()&os.ModePerm, fm; got != want {
+		return fmt.Errorf("%s: GOT: %v; WANT: %v", fn, got, want)
 	}
 
 	return nil
