@@ -40,17 +40,17 @@ jobs:
           arguments: -v ./...
         displayName: 'Execute Tests'
 
-  - job: Windows
-    pool:
-      vmImage: 'vs2017-win2016'
+  # - job: Windows
+  #   pool:
+  #     vmImage: 'vs2017-win2016'
 
-    steps:
-      - task: GoTool@0
-        displayName: 'Use Go $(GOVERSION)'
-        inputs:
-          version: $(GOVERSION)
-      - task: Go@0
-        inputs:
-          command: test
-          arguments: -v ./...
-        displayName: 'Execute Tests'
+  #   steps:
+  #     - task: GoTool@0
+  #       displayName: 'Use Go $(GOVERSION)'
+  #       inputs:
+  #         version: $(GOVERSION)
+  #     - task: Go@0
+  #       inputs:
+  #         command: test
+  #         arguments: -v ./...
+  #       displayName: 'Execute Tests'
