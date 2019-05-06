@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 )
 
@@ -279,6 +280,10 @@ func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
 			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
 		},
+		ErrorCallback: func(osChildname string, err error) ErrorAction {
+			fmt.Fprintf(os.Stderr, "%s: %s\n", osChildname, err)
+			return SkipNode // ignore error for now
+		},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -294,15 +299,9 @@ func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
 		filepath.Join(rootDir, "dir7", "z"),
 	}
 
-	if got, want := len(actual), len(expected); got != want {
-		t.Fatalf("\n(GOT)\n\t%#v\n(WNT)\n\t%#v", actual, expected)
-	}
-
-	for i := 0; i < len(actual); i++ {
-		if got, want := actual[i], expected[i]; got != want {
-			t.Errorf("(GOT) %v; (WNT) %v", got, want)
-		}
-	}
+	sort.Strings(actual)
+	sort.Strings(expected)
+	ensureStringSlicesMatch(t, actual, expected)
 }
 
 func TestPostChildrenCallback(t *testing.T) {
