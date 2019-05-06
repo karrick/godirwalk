@@ -1,6 +1,7 @@
 package godirwalk
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -123,9 +124,17 @@ func TestWalkSkipDir(t *testing.T) {
 }
 
 func TestWalkNoAccess(t *testing.T) {
+	fi, err := os.Lstat(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")))
+	if err != nil {
+		t.Skip(fmt.Sprintf("cannot stat for test scaffolding: %s", err))
+	}
+	if got, want := fi.Mode()&os.ModePerm, os.FileMode(0); got != want {
+		t.Skip(fmt.Sprintf("dir6/noaccess created with wrong file mode bits: %s", got))
+	}
+
 	var actual []string
 
-	err := Walk(rootDir, &Options{
+	err = Walk(rootDir, &Options{
 		ScratchBuffer: make([]byte, testScratchBufferSize),
 		Callback: func(osPathname string, _ *Dirent) error {
 			// t.Logf("walk in: %s", osPathname)

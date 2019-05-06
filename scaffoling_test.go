@@ -114,20 +114,8 @@ func setup() error {
 		}
 	}
 
-	fn := filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess"))
-	fm := os.FileMode(0)
-	if err := os.MkdirAll(fn, fm); err != nil {
+	if err := os.MkdirAll(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")), os.FileMode(0)); err != nil {
 		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
-	}
-	fi, err := os.Lstat(fn)
-	if err != nil {
-		return fmt.Errorf("cannot stat for test scaffolding: %s", err)
-	}
-	if got, want := fi.Mode()&os.ModePerm, fm; got != want {
-		if err := os.Chmod(fn, fm); err != nil {
-			return fmt.Errorf("cannot change file mode: %s", err)
-		}
-		fmt.Fprintf(os.Stderr, "had to change file mode after creation %s: GOT: %v; WANT: %v", fn, got, want)
 	}
 
 	return nil
