@@ -124,7 +124,10 @@ func setup() error {
 		return fmt.Errorf("cannot stat for test scaffolding: %s", err)
 	}
 	if got, want := fi.Mode()&os.ModePerm, fm; got != want {
-		return fmt.Errorf("%s: GOT: %v; WANT: %v", fn, got, want)
+		if err := os.Chmod(fn, fm); err != nil {
+			return fmt.Errorf("cannot change file mode: %s", err)
+		}
+		fmt.Fprintf(os.Stderr, "had to change file mode after creation %s: GOT: %v; WANT: %v", fn, got, want)
 	}
 
 	return nil
