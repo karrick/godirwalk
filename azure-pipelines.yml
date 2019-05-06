@@ -25,6 +25,21 @@ jobs:
           arguments: -v ./...
         displayName: 'Execute Tests'
 
+  - job: Mac
+    pool:
+      vmImage: 'macos-10.13'
+
+    steps:
+      - task: GoTool@0
+        displayName: 'Use Go $(GOVERSION)'
+        inputs:
+          version: $(GOVERSION)
+      - task: Go@0
+        inputs:
+          command: test
+          arguments: -v ./...
+        displayName: 'Execute Tests'
+
   - job: Windows
     pool:
       vmImage: 'vs2017-win2016'
