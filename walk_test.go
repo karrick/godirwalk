@@ -132,7 +132,7 @@ func TestWalkNoAccess(t *testing.T) {
 			return nil
 		},
 		ErrorCallback: func(osChildname string, err error) ErrorAction {
-			actual = append(actual, osChildname)
+			actual = append(actual, filepath.FromSlash(osChildname))
 			return SkipNode
 		},
 	})
