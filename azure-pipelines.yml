@@ -11,32 +11,17 @@ pool:
 
 variables:
   GOBIN:  '$(GOPATH)/bin' # Go binaries path
-  GOROOT: '/usr/local/go1.11' # Go installation path
+  GOROOT: '/usr/local/go1.12' # Go installation path
   GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
   modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
 
 steps:
   - task: GoTool@0
-    displayName: 'Use Go 1.11'
+    displayName: 'Use Go 1.12'
     inputs:
-      version: 1.11
+      version: 1.12
   - task: Go@0
     inputs:
       command: test
       arguments: ./...
     displayName: 'Execute Tests'
-# - script: |
-#     mkdir -p '$(GOBIN)'
-#     mkdir -p '$(GOPATH)/pkg'
-#     mkdir -p '$(modulePath)'
-#     shopt -s extglob
-#     shopt -s dotglob
-#     mv !(gopath) '$(modulePath)'
-#     echo '##vso[task.prependpath]$(GOBIN)'
-#     echo '##vso[task.prependpath]$(GOROOT)/bin'
-#   displayName: 'Set up the Go workspace'
-# - script: |
-#     go version
-#     go test -v ./...
-#   workingDirectory: '$(modulePath)'
-#   displayName: 'Test'
