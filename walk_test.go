@@ -41,7 +41,7 @@ func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
 			// filepath.Walk invokes callback function with a slashed version of
 			// the pathname, while godirwalk invokes callback function with the
 			// os-specific pathname separator.
-			entries = append(entries, filepath.ToSlash(osPathname))
+			entries = append(entries, osPathname) //.ToSlash(osPathname))
 			return nil
 		},
 		ScratchBuffer: make([]byte, testScratchBufferSize),
