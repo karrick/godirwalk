@@ -10,16 +10,13 @@ pool:
   vmImage: 'Ubuntu-16.04'
 
 variables:
-  GOBIN:  '$(GOPATH)/bin' # Go binaries path
-  GOROOT: '/usr/local/go1.12' # Go installation path
-  GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
-  modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
+  GOVERSION: 1.12
 
 steps:
   - task: GoTool@0
-    displayName: 'Use Go 1.12'
+    displayName: 'Use Go $(GOVERSION)'
     inputs:
-      version: 1.12
+      version: $(GOVERSION)
   - task: Go@0
     inputs:
       command: test
