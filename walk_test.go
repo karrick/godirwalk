@@ -76,8 +76,6 @@ func TestWalkSkipDir(t *testing.T) {
 		for i := 0; i < len(actual); i++ {
 			if got, want := actual[i], expected[i]; got != want {
 				t.Errorf("(GOT) %v; (WNT) %v", got, want)
-				// } else {
-				// 	t.Log(got)
 			}
 		}
 	}
@@ -180,7 +178,7 @@ func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
 			// filepath.Walk invokes callback function with a slashed version of
 			// the pathname, while godirwalk invokes callback function with the
 			// os-specific pathname separator.
-			actual = append(actual, filepath.ToSlash(osPathname))
+			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
 		},
 	})
@@ -233,7 +231,7 @@ func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
 			// filepath.Walk invokes callback function with a slashed version of
 			// the pathname, while godirwalk invokes callback function with the
 			// os-specific pathname separator.
-			actual = append(actual, filepath.ToSlash(osPathname))
+			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
 		},
 	})
@@ -269,7 +267,7 @@ func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
 	err := Walk(filepath.Join(rootDir, "dir7"), &Options{
 		FollowSymbolicLinks: true,
 		Callback: func(osPathname string, dirent *Dirent) error {
-			actual = append(actual, filepath.ToSlash(osPathname))
+			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
 		},
 	})
