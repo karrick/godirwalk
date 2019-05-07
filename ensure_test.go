@@ -33,7 +33,7 @@ func ensureStringSlicesMatch(tb testing.TB, actual, expected []string) {
 		case -1:
 			tb.Errorf("GOT: %q (extra)", s)
 		case 0:
-			// t.Errorf("actual extra key: %s", s)
+			// both slices have this key
 		case 1:
 			tb.Errorf("WANT: %q (missing)", s)
 		default:
