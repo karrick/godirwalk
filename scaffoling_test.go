@@ -80,8 +80,8 @@ func setup() error {
 		{"dir3/skip", "zzz"},
 		{"dir4/symlinkToDirectory", "zzz"},
 		{"dir4/symlinkToFile", "aaa.txt"},
-		{"dir7/a/x", "../b"},
 		{"dir7/b/y", "../z"},
+		{"dir7/a/x", "../b"},
 		{"symlinks/dir-symlink", "../symlinks"}, // infinite loop of symlinks
 		{"symlinks/file-symlink", "../file3"},
 		{"symlinks/invalid-symlink", "/non/existing/file"},
