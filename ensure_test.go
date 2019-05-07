@@ -27,7 +27,7 @@ func ensureStringSlicesMatch(tb testing.TB, actual, expected []string) {
 	for _, s := range keys {
 		v, ok := results[s]
 		if !ok {
-			panic(fmt.Errorf("cannot find key: %s", s))
+			panic(fmt.Errorf("cannot find key: %s", s)) // panic because this function is broken
 		}
 		switch v {
 		case -1:
@@ -37,7 +37,7 @@ func ensureStringSlicesMatch(tb testing.TB, actual, expected []string) {
 		case 1:
 			tb.Errorf("WANT: %q (missing)", s)
 		default:
-			tb.Errorf("key has invalid value: %s: %d", s, v)
+			panic(fmt.Errorf("key has invalid value: %s: %d", s, v)) // panic because this function is broken
 		}
 	}
 }
