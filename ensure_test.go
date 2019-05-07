@@ -1,25 +1,43 @@
 package godirwalk
 
-import "testing"
+import (
+	"fmt"
+	"sort"
+	"testing"
+)
 
 func ensureStringSlicesMatch(tb testing.TB, actual, expected []string) {
 	tb.Helper()
-	if got, want := len(actual), len(expected); got != want {
-		tb.Errorf("GOT: %v; WANT: %v", got, want)
+
+	results := make(map[string]int)
+
+	for _, s := range actual {
+		results[s] -= 1
 	}
-	la := len(actual)
-	le := len(expected)
-	for i := 0; i < la || i < le; i++ {
-		if i < la {
-			if i < le {
-				if got, want := actual[i], expected[i]; got != want {
-					tb.Errorf("GOT: %q; WANT: %q", got, want)
-				}
-			} else {
-				tb.Errorf("GOT: %q (extra)", actual[i])
-			}
-		} else if i < le {
-			tb.Errorf("WANT: %q (missing)", expected[i])
+	for _, s := range expected {
+		results[s] += 1
+	}
+
+	keys := make([]string, 0, len(results))
+	for k := range results {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, s := range keys {
+		v, ok := results[s]
+		if !ok {
+			panic(fmt.Errorf("cannot find key: %s", s))
+		}
+		switch v {
+		case -1:
+			tb.Errorf("GOT: %q (extra)", s)
+		case 0:
+			// t.Errorf("actual extra key: %s", s)
+		case 1:
+			tb.Errorf("WANT: %q (missing)", s)
+		default:
+			tb.Errorf("key has invalid value: %s: %d", s, v)
 		}
 	}
 }
