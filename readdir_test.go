@@ -106,23 +106,12 @@ func TestReadDirentsSymlinks(t *testing.T) {
 }
 
 func TestReadDirnames(t *testing.T) {
-	entries, err := ReadDirnames(rootDir, nil)
+	actual, err := ReadDirnames(rootDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	expected := []string{"dir1", "dir2", "dir3", "dir4", "dir5", "dir6", "dir7", "file3", "symlinks"}
 
-	if got, want := len(entries), len(expected); got != want {
-		t.Fatalf("(GOT) %v; (WNT) %v", got, want)
-	}
-
-	sort.Strings(entries)
-	sort.Strings(expected)
-
-	for i := 0; i < len(entries); i++ {
-		if got, want := entries[i], expected[i]; got != want {
-			t.Errorf("(GOT) %v; (WNT) %v", got, want)
-		}
-	}
+	ensureStringSlicesMatch(t, actual, expected)
 }

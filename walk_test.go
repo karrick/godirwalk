@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"testing"
 )
 
@@ -299,8 +298,6 @@ func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
 		filepath.Join(rootDir, "dir7", "z"),
 	}
 
-	sort.Strings(actual)
-	sort.Strings(expected)
 	ensureStringSlicesMatch(t, actual, expected)
 }
 
@@ -331,18 +328,7 @@ func TestPostChildrenCallback(t *testing.T) {
 		filepath.Join(rootDir, "dir5"),
 	}
 
-	if got, want := len(actual), len(expected); got != want {
-		t.Errorf("(GOT) %v; (WNT) %v", got, want)
-	}
-
-	for i := 0; i < len(actual); i++ {
-		if i >= len(expected) {
-			t.Fatalf("(GOT) %v; (WNT): %v", actual[i], nil)
-		}
-		if got, want := actual[i], expected[i]; got != want {
-			t.Errorf("(GOT) %v; (WNT) %v", got, want)
-		}
-	}
+	ensureStringSlicesMatch(t, actual, expected)
 }
 
 var goPrefix = filepath.Join(os.Getenv("GOPATH"), "src")
