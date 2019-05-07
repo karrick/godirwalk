@@ -10,35 +10,35 @@ variables:
   GOVERSION: 1.12
 
 jobs:
-  # - job: Linux
-  #   pool:
-  #     vmImage: 'Ubuntu-16.04'
+  - job: Linux
+    pool:
+      vmImage: 'Ubuntu-16.04'
 
-  #   steps:
-  #     - task: GoTool@0
-  #       displayName: 'Use Go $(GOVERSION)'
-  #       inputs:
-  #         version: $(GOVERSION)
-  #     - task: Go@0
-  #       inputs:
-  #         command: test
-  #         arguments: -v ./...
-  #       displayName: 'Execute Tests'
+    steps:
+      - task: GoTool@0
+        displayName: 'Use Go $(GOVERSION)'
+        inputs:
+          version: $(GOVERSION)
+      - task: Go@0
+        inputs:
+          command: test
+          arguments: -v ./...
+        displayName: 'Execute Tests'
 
-  # - job: Mac
-  #   pool:
-  #     vmImage: 'macos-10.13'
+  - job: Mac
+    pool:
+      vmImage: 'macos-10.13'
 
-  #   steps:
-  #     - task: GoTool@0
-  #       displayName: 'Use Go $(GOVERSION)'
-  #       inputs:
-  #         version: $(GOVERSION)
-  #     - task: Go@0
-  #       inputs:
-  #         command: test
-  #         arguments: -v ./...
-  #       displayName: 'Execute Tests'
+    steps:
+      - task: GoTool@0
+        displayName: 'Use Go $(GOVERSION)'
+        inputs:
+          version: $(GOVERSION)
+      - task: Go@0
+        inputs:
+          command: test
+          arguments: -v ./...
+        displayName: 'Execute Tests'
 
   - job: Windows
     pool:
