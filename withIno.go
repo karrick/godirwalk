@@ -1,4 +1,4 @@
-// +build darwin linux solaris
+// +build aix darwin linux nacl solaris
 
 package godirwalk
 
