@@ -8,7 +8,7 @@ import (
 )
 
 func TestReadDirents(t *testing.T) {
-	entries, err := ReadDirents(rootDir, nil)
+	entries, err := ReadDirents(testRoot, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestReadDirents(t *testing.T) {
 }
 
 func TestReadDirentsSymlinks(t *testing.T) {
-	osDirname := filepath.Join(rootDir, "symlinks")
+	osDirname := filepath.Join(testRoot, "symlinks")
 
 	// Because some platforms set multiple mode type bits, when we create the
 	// expected slice, we need to ensure the mode types are set appropriately.
@@ -106,7 +106,7 @@ func TestReadDirentsSymlinks(t *testing.T) {
 }
 
 func TestReadDirnames(t *testing.T) {
-	actual, err := ReadDirnames(rootDir, nil)
+	actual, err := ReadDirnames(testRoot, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

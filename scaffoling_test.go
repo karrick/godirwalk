@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-var rootDir string
+var testRoot string
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -17,16 +17,21 @@ func TestMain(m *testing.M) {
 	// All tests use the same directory test scaffolding.  Create the directory
 	// hierarchy, run the tests, then remove the root directory of the test
 	// scaffolding.
+
+	// When cannot complete setup, dump the directory so we see what we have,
+	// then bail.
 	if err := setup(); err != nil {
 		fmt.Fprintf(os.Stderr, "setup: %s\n", err)
-		dumpDirectory(rootDir)
+		dumpDirectory()
 		os.Exit(1)
 	}
 
 	code := m.Run()
 
+	// When any test was a failure, then use standard library to walk test
+	// scaffolding directory and print its contents.
 	if code != 0 {
-		dumpDirectory(rootDir)
+		dumpDirectory()
 	}
 
 	if err := teardown(); err != nil {
@@ -37,11 +42,9 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func dumpDirectory(osDirname string) {
-	// When any test was a failure, then use standard library to walk test
-	// scaffolding directory and print its contents.
-	trim := len(rootDir) // trim rootDir from prefix of strings
-	err := filepath.Walk(rootDir, func(osPathname string, info os.FileInfo, err error) error {
+func dumpDirectory() {
+	trim := len(testRoot) // trim rootDir from prefix of strings
+	err := filepath.Walk(testRoot, func(osPathname string, info os.FileInfo, err error) error {
 		if err != nil {
 			// we have no info, so get it
 			info, err2 := os.Lstat(osPathname)
@@ -75,7 +78,7 @@ func dumpDirectory(osDirname string) {
 func setup() error {
 	var err error
 
-	rootDir, err = ioutil.TempDir(os.TempDir(), "godirwalk-")
+	testRoot, err = ioutil.TempDir(os.TempDir(), "godirwalk-")
 	if err != nil {
 		return err
 	}
@@ -102,25 +105,28 @@ func setup() error {
 		"file3",
 	}
 
-	for _, pathname := range files {
-		pathname = filepath.Join(rootDir, filepath.FromSlash(pathname))
-
-		if err := os.MkdirAll(filepath.Dir(pathname), os.ModePerm); err != nil {
+	for _, newname := range files {
+		newname = filepath.Join(testRoot, filepath.FromSlash(newname))
+		if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
 			return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 		}
-
-		if err = ioutil.WriteFile(pathname, []byte("some test data\n"), os.ModePerm); err != nil {
+		if err = ioutil.WriteFile(newname, []byte("some test data\n"), os.ModePerm); err != nil {
 			return fmt.Errorf("cannot create file for test scaffolding: %s", err)
 		}
 	}
 
 	// Create an symbolic link to an absolute pathname.
-	oldname := filepath.Join(rootDir, "dir4/zzz")
-	newname := filepath.Join(rootDir, "dir4/symlinkToAbsDirectory")
-	if err := symlinkAbs(oldname, newname); err != nil {
-		return err
+	absolute, err := filepath.Abs(filepath.Join(testRoot, "dir4/zzz"))
+	if err != nil {
+		return fmt.Errorf("cannot create absolute pathname for test scaffolding: %s", err)
+	}
+	newname := filepath.Join(testRoot, "dir4/symlinkToAbsDirectory")
+	if err := os.Symlink(absolute, newname); err != nil {
+		return fmt.Errorf("cannot create symlink to absolute directory for test scaffolding: %s", err)
 	}
 
+	// Create a handful of symbolic links, creating parent directories along the
+	// way.
 	symlinks := []struct {
 		newname, oldname string
 	}{
@@ -135,33 +141,31 @@ func setup() error {
 	}
 
 	for _, entry := range symlinks {
-		newname := filepath.Join(rootDir, filepath.FromSlash(entry.newname))
-
+		newname := filepath.Join(testRoot, filepath.FromSlash(entry.newname))
 		if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
 			return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 		}
-
 		oldname := filepath.FromSlash(entry.oldname)
-
 		if err := os.Symlink(oldname, newname); err != nil {
 			return fmt.Errorf("cannot create symbolic link for test scaffolding: %s", err)
 		}
 	}
 
+	// Create a few empty directory entries.
 	extraDirs := []string{
 		"dir6/abc",
 		"dir6/def",
 	}
 
-	for _, pathname := range extraDirs {
-		pathname = filepath.Join(rootDir, filepath.FromSlash(pathname))
-
-		if err := os.MkdirAll(pathname, os.ModePerm); err != nil {
+	for _, newname := range extraDirs {
+		newname = filepath.Join(testRoot, filepath.FromSlash(newname))
+		if err := os.MkdirAll(newname, os.ModePerm); err != nil {
 			return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 		}
 	}
 
-	if err := os.MkdirAll(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")), os.FileMode(0)); err != nil {
+	// Create a directory for which the testing user has no access.
+	if err := os.MkdirAll(filepath.Join(testRoot, filepath.FromSlash("dir6/noaccess")), os.FileMode(0)); err != nil {
 		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 	}
 	// fi, err := os.Lstat(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")))
@@ -177,19 +181,12 @@ func setup() error {
 }
 
 func teardown() error {
-	if err := os.Chmod(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
+	// Change permissions back to something we will later be permitted to delete.
+	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
 		return fmt.Errorf("cannot change permission to delete dir6/noaccess for test scaffolding: %s", err)
 	}
-	if err := os.RemoveAll(rootDir); err != nil {
+	if err := os.RemoveAll(testRoot); err != nil {
 		return err
 	}
 	return nil
-}
-
-func symlinkAbs(oldname, newname string) error {
-	absolute, err := filepath.Abs(oldname)
-	if err != nil {
-		return fmt.Errorf("cannot create symlink to absolute directory for test scaffolding: %s", err)
-	}
-	return os.Symlink(absolute, newname)
 }
