@@ -48,7 +48,7 @@ func readdirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 			}
 			osChildname := string(nameSlice)
 
-			mode, err := fileModeFromDirent(de, osDirname, osChildname)
+			mode, err := fileMode(de, osDirname, osChildname)
 			if err != nil {
 				_ = dh.Close() // ignore potential error returned by Close
 				return nil, err
