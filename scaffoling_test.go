@@ -24,7 +24,24 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	if err := teardown(); err != nil {
+	if code != 0 {
+		// When any test was a failure, then use standard library to walk test
+		// scaffolding directory and print its contents.
+		trim := len(rootDir) // trim rootDir from prefix of strings
+		err := filepath.Walk(rootDir, func(osPathname string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			osPathname = osPathname[trim:]
+			_, err = fmt.Fprintf(os.Stderr, "%s %s\n", info.Mode(), osPathname)
+			return err
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cannot walk test directory: %s\n", err)
+		}
+	}
+
+	if err := teardown(code); err != nil {
 		fmt.Fprintf(os.Stderr, "teardown: %s\n", err)
 		os.Exit(1)
 	}
@@ -121,7 +138,7 @@ func setup() error {
 	return nil
 }
 
-func teardown() error {
+func teardown(code int) error {
 	if err := os.Chmod(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
 		return fmt.Errorf("cannot change permission to delete dir6/noaccess for test scaffolding: %s", err)
 	}
