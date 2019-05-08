@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	if err := teardown(code); err != nil {
+	if err := teardown(); err != nil {
 		fmt.Fprintf(os.Stderr, "teardown: %s\n", err)
 		os.Exit(1)
 	}
@@ -138,7 +138,7 @@ func setup() error {
 	return nil
 }
 
-func teardown(code int) error {
+func teardown() error {
 	if err := os.Chmod(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
 		return fmt.Errorf("cannot change permission to delete dir6/noaccess for test scaffolding: %s", err)
 	}
