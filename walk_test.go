@@ -9,6 +9,12 @@ import (
 
 const testScratchBufferSize = 16 * 1024
 
+var testScratchBuffer []byte
+
+func init() {
+	testScratchBuffer = make([]byte, testScratchBufferSize)
+}
+
 func helperFilepathWalk(tb testing.TB, osDirname string) []string {
 	tb.Helper()
 	var entries []string
@@ -32,6 +38,7 @@ func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
 	tb.Helper()
 	var entries []string
 	err := Walk(osDirname, &Options{
+		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, dirent *Dirent) error {
 			if dirent.Name() == "skip" {
 				return filepath.SkipDir
@@ -39,7 +46,6 @@ func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
 			entries = append(entries, filepath.FromSlash(osPathname))
 			return nil
 		},
-		ScratchBuffer: make([]byte, testScratchBufferSize),
 	})
 	if err != nil {
 		tb.Fatal(err)
@@ -106,7 +112,7 @@ func TestWalkNoAccess(t *testing.T) {
 	var actual []string
 
 	err = Walk(rootDir, &Options{
-		ScratchBuffer: make([]byte, testScratchBufferSize),
+		ScratchBuffer: testScratchBuffer,
 		Callback: func(_ string, _ *Dirent) error {
 			return nil
 		},
@@ -129,6 +135,7 @@ func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
 
 	var actual []string
 	err := Walk(osDirname, &Options{
+		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
@@ -156,11 +163,12 @@ func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
 
 	var actual []string
 	err := Walk(osDirname, &Options{
-		FollowSymbolicLinks: true,
+		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
 		},
+		FollowSymbolicLinks: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -184,11 +192,12 @@ func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
 func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
 	var actual []string
 	err := Walk(filepath.Join(rootDir, "dir7"), &Options{
-		FollowSymbolicLinks: true,
+		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
 		},
+		FollowSymbolicLinks: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -213,7 +222,7 @@ func TestPostChildrenCallback(t *testing.T) {
 	var actual []string
 
 	err := Walk(osDirname, &Options{
-		ScratchBuffer: make([]byte, testScratchBufferSize),
+		ScratchBuffer: testScratchBuffer,
 		Callback: func(_ string, _ *Dirent) error {
 			return nil
 		},
