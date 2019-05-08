@@ -19,44 +19,14 @@ func TestMain(m *testing.M) {
 	// scaffolding.
 	if err := setup(); err != nil {
 		fmt.Fprintf(os.Stderr, "setup: %s\n", err)
+		dumpDirectory(rootDir)
 		os.Exit(1)
 	}
 
 	code := m.Run()
 
 	if code != 0 {
-		// When any test was a failure, then use standard library to walk test
-		// scaffolding directory and print its contents.
-		trim := len(rootDir) // trim rootDir from prefix of strings
-		err := filepath.Walk(rootDir, func(osPathname string, info os.FileInfo, err error) error {
-			if err != nil {
-				// we have no info, so get it
-				info, err2 := os.Lstat(osPathname)
-				if err2 != nil {
-					fmt.Fprintf(os.Stderr, "?--------- %s: %s\n", osPathname[trim:], err2)
-				} else {
-					fmt.Fprintf(os.Stderr, "%s %s: %s\n", info.Mode(), osPathname[trim:], err)
-				}
-				return nil
-			}
-
-			var suffix string
-
-			if info.Mode()&os.ModeSymlink != 0 {
-				referent, err := os.Readlink(osPathname)
-				if err != nil {
-					suffix = fmt.Sprintf(": cannot read symlink: %s", err)
-					err = nil
-				} else {
-					suffix = fmt.Sprintf(" -> %s", referent)
-				}
-			}
-			fmt.Fprintf(os.Stderr, "%s %s%s\n", info.Mode(), osPathname[trim:], suffix)
-			return nil
-		})
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "cannot walk test directory: %s\n", err)
-		}
+		dumpDirectory(rootDir)
 	}
 
 	if err := teardown(); err != nil {
@@ -65,6 +35,41 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(code)
+}
+
+func dumpDirectory(osDirname string) {
+	// When any test was a failure, then use standard library to walk test
+	// scaffolding directory and print its contents.
+	trim := len(rootDir) // trim rootDir from prefix of strings
+	err := filepath.Walk(rootDir, func(osPathname string, info os.FileInfo, err error) error {
+		if err != nil {
+			// we have no info, so get it
+			info, err2 := os.Lstat(osPathname)
+			if err2 != nil {
+				fmt.Fprintf(os.Stderr, "?--------- %s: %s\n", osPathname[trim:], err2)
+			} else {
+				fmt.Fprintf(os.Stderr, "%s %s: %s\n", info.Mode(), osPathname[trim:], err)
+			}
+			return nil
+		}
+
+		var suffix string
+
+		if info.Mode()&os.ModeSymlink != 0 {
+			referent, err := os.Readlink(osPathname)
+			if err != nil {
+				suffix = fmt.Sprintf(": cannot read symlink: %s", err)
+				err = nil
+			} else {
+				suffix = fmt.Sprintf(" -> %s", referent)
+			}
+		}
+		fmt.Fprintf(os.Stderr, "%s %s%s\n", info.Mode(), osPathname[trim:], suffix)
+		return nil
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "cannot walk test directory: %s\n", err)
+	}
 }
 
 func setup() error {
@@ -113,7 +118,7 @@ func setup() error {
 	oldname := filepath.Join(rootDir, "dir4/zzz")
 	newname := filepath.Join(rootDir, "dir4/symlinkToAbsDirectory")
 	if err := symlinkAbs(oldname, newname); err != nil {
-		return fmt.Errorf("cannot create symlink to absolute directory for test scaffolding: %s", err)
+		return err
 	}
 
 	symlinks := []struct {
@@ -184,7 +189,7 @@ func teardown() error {
 func symlinkAbs(oldname, newname string) error {
 	absolute, err := filepath.Abs(oldname)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot create symlink to absolute directory for test scaffolding: %s", err)
 	}
 	return os.Symlink(absolute, newname)
 }

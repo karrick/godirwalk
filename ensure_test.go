@@ -12,10 +12,10 @@ func ensureStringSlicesMatch(tb testing.TB, actual, expected []string) {
 	results := make(map[string]int)
 
 	for _, s := range actual {
-		results[s] -= 1
+		results[s] = -1
 	}
 	for _, s := range expected {
-		results[s] += 1
+		results[s]++
 	}
 
 	keys := make([]string, 0, len(results))
