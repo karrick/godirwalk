@@ -24,17 +24,18 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	if code != 0 {
+	if true || code != 0 {
 		// When any test was a failure, then use standard library to walk test
 		// scaffolding directory and print its contents.
 		trim := len(rootDir) // trim rootDir from prefix of strings
 		err := filepath.Walk(rootDir, func(osPathname string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
 			osPathname = osPathname[trim:]
-			_, err = fmt.Fprintf(os.Stderr, "%s %s\n", info.Mode(), osPathname)
-			return err
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "---------- %s: %s\n", osPathname, err)
+			} else {
+				fmt.Fprintf(os.Stderr, "%s %s\n", info.Mode(), osPathname)
+			}
+			return nil
 		})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "cannot walk test directory: %s\n", err)
