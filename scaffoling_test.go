@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	if true || code != 0 {
+	if code != 0 {
 		// When any test was a failure, then use standard library to walk test
 		// scaffolding directory and print its contents.
 		trim := len(rootDir) // trim rootDir from prefix of strings
