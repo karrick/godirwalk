@@ -1,4 +1,4 @@
-// +build nacl linux solaris
+// +build nacl linux js solaris
 
 package godirwalk
 
