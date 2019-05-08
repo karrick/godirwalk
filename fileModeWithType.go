@@ -8,7 +8,7 @@ import (
 	"syscall"
 )
 
-// fileMode converts a syscall constant, which is in purview of OS, to a
+// fileMode converts a syscall defined constant, which is in purview of OS, to a
 // constant defined by Go, assumed by this project to be stable.
 //
 // When the syscall constant is not recognized, this function falls back to a
