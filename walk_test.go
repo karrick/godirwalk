@@ -61,6 +61,11 @@ func symlinkAbs(oldname, newname string) error {
 	return os.Symlink(absDir, newname)
 }
 
+func TestWalkWithoutCallbackReturnsError(t *testing.T) {
+	err := Walk(rootDir, new(Options))
+	ensureError(t, err, "Callback function")
+}
+
 func TestWalkSkipDir(t *testing.T) {
 	// Ensure the results from calling filepath.Walk exactly match the results
 	// for calling this library's walk function.
