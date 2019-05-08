@@ -246,13 +246,18 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		if !options.FollowSymbolicLinks {
 			return nil
 		}
-		skip, err := symlinkDirHelper(osPathname, dirent, options)
-		if err != nil || skip {
+		isDir, err := isSymlinkToDirectory(osPathname)
+		if err == nil {
+			if !isDir {
+				return nil
+			}
+		} else {
+			if action := options.ErrorCallback(osPathname, err); action == SkipNode {
+				return nil
+			}
 			return err
 		}
-	}
-
-	if !dirent.IsDir() {
+	} else if !dirent.IsDir() {
 		return nil
 	}
 
@@ -272,28 +277,28 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	for _, deChild := range deChildren {
 		osChildname := filepath.Join(osPathname, deChild.name)
 		err = walk(osChildname, deChild, options)
-		if err != nil {
-			if err != filepath.SkipDir {
-				return err
-			}
-			// If received skipdir on a directory, stop processing that
-			// directory, but continue to its siblings. If received skipdir on a
-			// non-directory, stop processing remaining siblings.
-			if deChild.IsSymlink() {
-				var skip bool
-				if skip, err = symlinkDirHelper(osChildname, deChild, options); err != nil {
-					return err
-				}
-				if skip {
-					continue
-				}
-			}
-			if !deChild.IsDir() {
-				// If not directory, return immediately, thus skipping remainder
-				// of siblings.
-				return nil
-			}
+		if err == nil {
+			continue
 		}
+		if err != filepath.SkipDir {
+			return err
+		}
+		// When received SkipDir on a directory or a symbolic link to a
+		// directory, stop processing that directory but continue processing
+		// siblings.  When received on a non-directory, stop processing
+		// remaining siblings.
+		isDir, err := isDirectoryOrSymlinkToDirectory(deChild, osChildname)
+		if err != nil {
+			if action := options.ErrorCallback(osChildname, err); action == SkipNode {
+				continue // ignore and continue with next sibling
+			}
+			return err // caller does not approve of this error
+		}
+		// fmt.Fprintf(os.Stderr, "isDir: %t %s\n", isDir, osChildname)
+		if !isDir {
+			break // stop processing remaining siblings, but allow post children callback
+		}
+		// continue processing remaining siblings
 	}
 
 	if options.PostChildrenCallback == nil {

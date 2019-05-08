@@ -29,12 +29,29 @@ func TestMain(m *testing.M) {
 		// scaffolding directory and print its contents.
 		trim := len(rootDir) // trim rootDir from prefix of strings
 		err := filepath.Walk(rootDir, func(osPathname string, info os.FileInfo, err error) error {
-			osPathname = osPathname[trim:]
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "---------- %s: %s\n", osPathname, err)
-			} else {
-				fmt.Fprintf(os.Stderr, "%s %s\n", info.Mode(), osPathname)
+				// we have no info, so get it
+				info, err2 := os.Lstat(osPathname)
+				if err2 != nil {
+					fmt.Fprintf(os.Stderr, "?--------- %s: %s\n", osPathname[trim:], err2)
+				} else {
+					fmt.Fprintf(os.Stderr, "%s %s: %s\n", info.Mode(), osPathname[trim:], err)
+				}
+				return nil
 			}
+
+			var suffix string
+
+			if info.Mode()&os.ModeSymlink != 0 {
+				referent, err := os.Readlink(osPathname)
+				if err != nil {
+					suffix = fmt.Sprintf(": cannot read symlink: %s", err)
+					err = nil
+				} else {
+					suffix = fmt.Sprintf(" -> %s", referent)
+				}
+			}
+			fmt.Fprintf(os.Stderr, "%s %s%s\n", info.Mode(), osPathname[trim:], suffix)
 			return nil
 		})
 		if err != nil {
@@ -92,6 +109,13 @@ func setup() error {
 		}
 	}
 
+	// Create an symbolic link to an absolute pathname.
+	oldname := filepath.Join(rootDir, "dir4/zzz")
+	newname := filepath.Join(rootDir, "dir4/symlinkToAbsDirectory")
+	if err := symlinkAbs(oldname, newname); err != nil {
+		return fmt.Errorf("cannot create symlink to absolute directory for test scaffolding: %s", err)
+	}
+
 	symlinks := []struct {
 		newname, oldname string
 	}{
@@ -135,6 +159,14 @@ func setup() error {
 	if err := os.MkdirAll(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")), os.FileMode(0)); err != nil {
 		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 	}
+	// fi, err := os.Lstat(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")))
+	// if err != nil {
+	// 	return fmt.Errorf("cannot stat for test scaffolding: %s", err)
+	// }
+	// if got, want := fi.Mode()&os.ModePerm, os.FileMode(0); got != want {
+	// 	return fmt.Errorf("dir6/noaccess created with wrong file mode bits: %s", got)
+	// }
+	// fmt.Fprintf(os.Stderr, "%s %s\n", fi.Mode(), filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")))
 
 	return nil
 }
@@ -147,4 +179,12 @@ func teardown() error {
 		return err
 	}
 	return nil
+}
+
+func symlinkAbs(oldname, newname string) error {
+	absolute, err := filepath.Abs(oldname)
+	if err != nil {
+		return err
+	}
+	return os.Symlink(absolute, newname)
 }
