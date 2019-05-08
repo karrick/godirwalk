@@ -16,7 +16,7 @@ import (
 func modeType(_ *syscall.Dirent, osDirname, osChildname string) (os.FileMode, error) {
 	fi, err := os.Lstat(filepath.Join(osDirname, osChildname))
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	// Even though the stat provided all file mode bits, we want to
 	// ensure same values returned to caller regardless of whether
