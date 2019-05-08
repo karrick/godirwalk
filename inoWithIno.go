@@ -5,5 +5,6 @@ package godirwalk
 import "syscall"
 
 func inoFromDirent(de *syscall.Dirent) uint64 {
-	return de.Ino
+	// cast necessary on file systems that store ino as different type
+	return uint64(de.Ino)
 }

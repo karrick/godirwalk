@@ -8,12 +8,12 @@ import (
 	"syscall"
 )
 
-// fileMode converts a syscall defined constant, which is in purview of OS, to a
+// modeType converts a syscall defined constant, which is in purview of OS, to a
 // constant defined by Go, assumed by this project to be stable.
 //
 // When the syscall constant is not recognized, this function falls back to a
 // Stat on the file system.
-func fileMode(de *syscall.Dirent, osDirname, osChildname string) (os.FileMode, error) {
+func modeType(de *syscall.Dirent, osDirname, osChildname string) (os.FileMode, error) {
 	switch de.Type {
 	case syscall.DT_REG:
 		return 0, nil
