@@ -9,72 +9,47 @@ import (
 	"testing"
 )
 
+const testScratchBufferSize = 16 * 1024
+
+var testScratchBuffer []byte
 var testRoot string
+
+func init() {
+	testScratchBuffer = make([]byte, testScratchBufferSize)
+}
 
 func TestMain(m *testing.M) {
 	flag.Parse()
 
+	var code int // program exit code
+
 	// All tests use the same directory test scaffolding.  Create the directory
 	// hierarchy, run the tests, then remove the root directory of the test
 	// scaffolding.
+
+	defer func() {
+		if err := teardown(); err != nil {
+			fmt.Fprintf(os.Stderr, "godirwalk teardown: %s\n", err)
+			code = 1
+		}
+		os.Exit(code)
+	}()
 
 	// When cannot complete setup, dump the directory so we see what we have,
 	// then bail.
 	if err := setup(); err != nil {
 		fmt.Fprintf(os.Stderr, "godirwalk setup: %s\n", err)
 		dumpDirectory()
-		if err := teardown(); err != nil {
-			fmt.Fprintf(os.Stderr, "godirwalk teardown: %s\n", err)
-		}
-		os.Exit(1)
+		code = 1
+		return
 	}
 
-	code := m.Run()
+	code = m.Run()
 
 	// When any test was a failure, then use standard library to walk test
 	// scaffolding directory and print its contents.
 	if code != 0 {
 		dumpDirectory()
-	}
-
-	if err := teardown(); err != nil {
-		fmt.Fprintf(os.Stderr, "godirwalk teardown: %s\n", err)
-		os.Exit(1)
-	}
-
-	os.Exit(code)
-}
-
-func dumpDirectory() {
-	trim := len(testRoot) // trim rootDir from prefix of strings
-	err := filepath.Walk(testRoot, func(osPathname string, info os.FileInfo, err error) error {
-		if err != nil {
-			// we have no info, so get it
-			info, err2 := os.Lstat(osPathname)
-			if err2 != nil {
-				fmt.Fprintf(os.Stderr, "?--------- %s: %s\n", osPathname[trim:], err2)
-			} else {
-				fmt.Fprintf(os.Stderr, "%s %s: %s\n", info.Mode(), osPathname[trim:], err)
-			}
-			return nil
-		}
-
-		var suffix string
-
-		if info.Mode()&os.ModeSymlink != 0 {
-			referent, err := os.Readlink(osPathname)
-			if err != nil {
-				suffix = fmt.Sprintf(": cannot read symlink: %s", err)
-				err = nil
-			} else {
-				suffix = fmt.Sprintf(" -> %s", referent)
-			}
-		}
-		fmt.Fprintf(os.Stderr, "%s %s%s\n", info.Mode(), osPathname[trim:], suffix)
-		return nil
-	})
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "cannot walk test directory: %s\n", err)
 	}
 }
 
@@ -118,13 +93,18 @@ func setup() error {
 		}
 	}
 
+	// Create a directory for which the testing user has no access.
+	if err := os.MkdirAll(filepath.Join(testRoot, filepath.FromSlash("dir6/noaccess/dir")), os.FileMode(0)); err != nil {
+		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
+	}
+
 	// Create an symbolic link to an absolute pathname.
-	absolute, err := filepath.Abs(filepath.Join(testRoot, "dir4/zzz"))
+	oldname, err := filepath.Abs(filepath.Join(testRoot, "dir4/zzz"))
 	if err != nil {
 		return fmt.Errorf("cannot create absolute pathname for test scaffolding: %s", err)
 	}
 	newname := filepath.Join(testRoot, "dir4/symlinkToAbsDirectory")
-	if err := os.Symlink(absolute, newname); err != nil {
+	if err := os.Symlink(oldname, newname); err != nil {
 		return fmt.Errorf("cannot create symlink to absolute directory for test scaffolding: %s", err)
 	}
 
@@ -133,14 +113,14 @@ func setup() error {
 	symlinks := []struct {
 		newname, oldname string
 	}{
-		{"dir3/skip", "zzz"},
+		// {"dir3/skip", "zzz"},
+		{"dir4/skip", "zzz"},
 		{"dir4/symlinkToDirectory", "zzz"},
 		{"dir4/symlinkToFile", "aaa.txt"},
-		{"dir7/b/y", "../z"},
-		{"dir7/a/x", "../b"},
-		{"symlinks/dir-symlink", "../symlinks"}, // infinite loop of symlinks
-		{"symlinks/file-symlink", "../file3"},
-		{"symlinks/invalid-symlink", "/non/existing/file"},
+		// {"dir4/symlinkToInfinity", "../dir4"},
+		{"dir4/symlinkToNothing", "non-existing-file"},
+		{"dir4/b/y", "../z"},
+		{"dir4/a/x", "../b"},
 	}
 
 	for _, entry := range symlinks {
@@ -167,23 +147,13 @@ func setup() error {
 		}
 	}
 
-	// Create a directory for which the testing user has no access.
-	if err := os.MkdirAll(filepath.Join(testRoot, filepath.FromSlash("dir6/noaccess")), os.FileMode(0)); err != nil {
-		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
-	}
-	// fi, err := os.Lstat(filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")))
-	// if err != nil {
-	// 	return fmt.Errorf("cannot stat for test scaffolding: %s", err)
-	// }
-	// if got, want := fi.Mode()&os.ModePerm, os.FileMode(0); got != want {
-	// 	return fmt.Errorf("dir6/noaccess created with wrong file mode bits: %s", got)
-	// }
-	// fmt.Fprintf(os.Stderr, "%s %s\n", fi.Mode(), filepath.Join(rootDir, filepath.FromSlash("dir6/noaccess")))
-
 	return nil
 }
 
 func teardown() error {
+	if testRoot == "" {
+		return nil // if we do not even have a test root directory then exit
+	}
 	// Change permissions back to something we will later be permitted to delete.
 	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
 		return fmt.Errorf("cannot change permission to delete dir6/noaccess for test scaffolding: %s", err)
@@ -192,4 +162,37 @@ func teardown() error {
 		return err
 	}
 	return nil
+}
+
+func dumpDirectory() {
+	trim := len(testRoot) // trim rootDir from prefix of strings
+	err := filepath.Walk(testRoot, func(osPathname string, info os.FileInfo, err error) error {
+		if err != nil {
+			// we have no info, so get it
+			info, err2 := os.Lstat(osPathname)
+			if err2 != nil {
+				fmt.Fprintf(os.Stderr, "?--------- %s: %s\n", osPathname[trim:], err2)
+			} else {
+				fmt.Fprintf(os.Stderr, "%s %s: %s\n", info.Mode(), osPathname[trim:], err)
+			}
+			return nil
+		}
+
+		var suffix string
+
+		if info.Mode()&os.ModeSymlink != 0 {
+			referent, err := os.Readlink(osPathname)
+			if err != nil {
+				suffix = fmt.Sprintf(": cannot read symlink: %s", err)
+				err = nil
+			} else {
+				suffix = fmt.Sprintf(" -> %s", referent)
+			}
+		}
+		fmt.Fprintf(os.Stderr, "%s %s%s\n", info.Mode(), osPathname[trim:], suffix)
+		return nil
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "cannot walk test directory: %s\n", err)
+	}
 }

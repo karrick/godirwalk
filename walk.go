@@ -196,11 +196,6 @@ func Walk(pathname string, options *Options) error {
 		return fmt.Errorf("cannot Walk non-directory: %s", pathname)
 	}
 
-	dirent := &Dirent{
-		name:     filepath.Base(pathname),
-		modeType: mode & os.ModeType,
-	}
-
 	// If ErrorCallback is nil, set to a default value that halts the walk
 	// process on all operating system errors. This is done to allow error
 	// handling to be more succinct in the walk code.
@@ -210,6 +205,11 @@ func Walk(pathname string, options *Options) error {
 
 	if len(options.ScratchBuffer) < MinimumScratchBufferSize {
 		options.ScratchBuffer = make([]byte, DefaultScratchBufferSize)
+	}
+
+	dirent := &Dirent{
+		name:     filepath.Base(pathname),
+		modeType: mode & os.ModeType,
 	}
 
 	err = walk(pathname, dirent, options)
@@ -239,29 +239,26 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		return err
 	}
 
-	// On some platforms, an entry can have more than one mode type bit set.
-	// For instance, it could have both the symlink bit and the directory bit
-	// set indicating it's a symlink to a directory.
 	if dirent.IsSymlink() {
 		if !options.FollowSymbolicLinks {
 			return nil
 		}
-		isDir, err := isSymlinkToDirectory(osPathname)
-		if err == nil {
-			if !isDir {
-				return nil
-			}
-		} else {
+		isDir, err := isSymlinkToDirectory(dirent, osPathname)
+		if err != nil {
 			if action := options.ErrorCallback(osPathname, err); action == SkipNode {
 				return nil
 			}
 			return err
 		}
+		if !isDir {
+			return nil
+		}
 	} else if !dirent.IsDir() {
 		return nil
 	}
 
-	// If get here, then specified pathname refers to a directory.
+	// If get here, then specified pathname refers to a directory or a
+	// symbolic link to a directory.
 	deChildren, err := ReadDirents(osPathname, options.ScratchBuffer)
 	if err != nil {
 		if action := options.ErrorCallback(osPathname, err); action == SkipNode {
@@ -277,6 +274,7 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	for _, deChild := range deChildren {
 		osChildname := filepath.Join(osPathname, deChild.name)
 		err = walk(osChildname, deChild, options)
+		//fmt.Fprintf(os.Stderr, "%s: %v\n", osChildname, err)
 		if err == nil {
 			continue
 		}

@@ -1,21 +1,12 @@
 package godirwalk
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-const testScratchBufferSize = 16 * 1024
-
-var testScratchBuffer []byte
-
-func init() {
-	testScratchBuffer = make([]byte, testScratchBufferSize)
-}
-
-func helperFilepathWalk(tb testing.TB, osDirname string) []string {
+func filepathWalk(tb testing.TB, osDirname string) []string {
 	tb.Helper()
 	var entries []string
 	err := filepath.Walk(osDirname, func(osPathname string, info os.FileInfo, err error) error {
@@ -34,7 +25,7 @@ func helperFilepathWalk(tb testing.TB, osDirname string) []string {
 	return entries
 }
 
-func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
+func godirwalkWalk(tb testing.TB, osDirname string) []string {
 	tb.Helper()
 	var entries []string
 	err := Walk(osDirname, &Options{
@@ -58,14 +49,27 @@ func helperGodirwalkWalk(tb testing.TB, osDirname string) []string {
 func ensureSameAsStandardLibrary(tb testing.TB, osDirname string) {
 	tb.Helper()
 	osDirname = filepath.Join(testRoot, osDirname)
-	expected := helperFilepathWalk(tb, osDirname)
-	actual := helperGodirwalkWalk(tb, osDirname)
+	actual := godirwalkWalk(tb, osDirname)
+	expected := filepathWalk(tb, osDirname)
 	ensureStringSlicesMatch(tb, actual, expected)
 }
 
+// Test the entire test root hierarchy with all of its artifacts.  This library
+// advertises itself as visiting the same file system entries as the standard
+// library, and responding to discovered errors the same way, including
+// responding to filepath.SkipDir exactly like the standard library does.  This
+// test ensures that behavior is correct by enumerating the contents of the test
+// root directory.
+func TestWalkCompatibleWithFilepathWalk(t *testing.T) {
+	t.Run("test root", func(t *testing.T) {
+		ensureSameAsStandardLibrary(t, "")
+	})
+
+}
+
+// Test cases for encountering the filepath.SkipDir error at different
+// relative positions from the invocation argument.
 func TestWalkSkipDir(t *testing.T) {
-	// Test cases for encountering the filepath.SkipDir error at different times
-	// from the call.
 	t.Run("SkipFileAtRoot", func(t *testing.T) {
 		ensureSameAsStandardLibrary(t, "dir1/dir1a")
 	})
@@ -83,8 +87,21 @@ func TestWalkSkipDir(t *testing.T) {
 	})
 
 	t.Run("SkipDirOnSymlink", func(t *testing.T) {
-		osDirname := filepath.Join(testRoot, "dir3")
-		actual := helperGodirwalkWalk(t, osDirname)
+		var actual []string
+		err := Walk(filepath.Join(testRoot, "dir3"), &Options{
+			ScratchBuffer: testScratchBuffer,
+			Callback: func(osPathname string, dirent *Dirent) error {
+				if dirent.Name() == "skip" {
+					return filepath.SkipDir
+				}
+				actual = append(actual, filepath.FromSlash(osPathname))
+				return nil
+			},
+			FollowSymbolicLinks: true, // make sure it normally would follow the links
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		expected := []string{
 			filepath.Join(testRoot, "dir3"),
@@ -97,72 +114,9 @@ func TestWalkSkipDir(t *testing.T) {
 	})
 }
 
-func TestWalkNoAccess(t *testing.T) {
-	//
-	// TODO: Eliminate this entire stanza that possibly skips.
-	//
-	fi, err := os.Lstat(filepath.Join(testRoot, filepath.FromSlash("dir6/noaccess")))
-	if err != nil {
-		t.Skip(fmt.Sprintf("cannot stat for test scaffolding: %s", err))
-	}
-	if got, want := fi.Mode()&os.ModePerm, os.FileMode(0); got != want {
-		t.Skip(fmt.Sprintf("dir6/noaccess created with wrong file mode bits: %s", got))
-	}
-
+func TestWalkFollowSymbolicLinks(t *testing.T) {
 	var actual []string
-
-	err = Walk(testRoot, &Options{
-		ScratchBuffer: testScratchBuffer,
-		Callback: func(_ string, _ *Dirent) error {
-			return nil
-		},
-		ErrorCallback: func(osChildname string, _ error) ErrorAction {
-			actual = append(actual, filepath.FromSlash(osChildname))
-			return SkipNode
-		},
-	})
-	if err != nil {
-		t.Errorf("(GOT): %v; (WNT): %v", err, nil)
-	}
-
-	expected := []string{filepath.Join(testRoot, "dir6/noaccess")}
-
-	ensureStringSlicesMatch(t, actual, expected)
-}
-
-func TestWalkFollowSymbolicLinksFalse(t *testing.T) {
-	osDirname := filepath.Join(testRoot, "dir4")
-
-	var actual []string
-	err := Walk(osDirname, &Options{
-		ScratchBuffer: testScratchBuffer,
-		Callback: func(osPathname string, _ *Dirent) error {
-			actual = append(actual, filepath.FromSlash(osPathname))
-			return nil
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := []string{
-		filepath.Join(testRoot, "dir4"),
-		filepath.Join(testRoot, "dir4/aaa.txt"),
-		filepath.Join(testRoot, "dir4/symlinkToAbsDirectory"),
-		filepath.Join(testRoot, "dir4/symlinkToDirectory"),
-		filepath.Join(testRoot, "dir4/symlinkToFile"),
-		filepath.Join(testRoot, "dir4/zzz"),
-		filepath.Join(testRoot, "dir4/zzz/aaa.txt"),
-	}
-
-	ensureStringSlicesMatch(t, actual, expected)
-}
-
-func TestWalkFollowSymbolicLinksTrue(t *testing.T) {
-	osDirname := filepath.Join(testRoot, "dir4")
-
-	var actual []string
-	err := Walk(osDirname, &Options{
+	err := Walk(filepath.Join(testRoot, "dir4"), &Options{
 		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, filepath.FromSlash(osPathname))
@@ -252,7 +206,7 @@ func BenchmarkFilepathWalk(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		_ = helperFilepathWalk(b, goPrefix)
+		_ = filepathWalk(b, goPrefix)
 	}
 }
 
@@ -262,7 +216,7 @@ func BenchmarkGodirwalk(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		_ = helperGodirwalkWalk(b, goPrefix)
+		_ = godirwalkWalk(b, goPrefix)
 	}
 }
 
@@ -270,12 +224,12 @@ const flameIterations = 10
 
 func BenchmarkFlameGraphFilepathWalk(b *testing.B) {
 	for i := 0; i < flameIterations; i++ {
-		_ = helperFilepathWalk(b, goPrefix)
+		_ = filepathWalk(b, goPrefix)
 	}
 }
 
 func BenchmarkFlameGraphGodirwalk(b *testing.B) {
 	for i := 0; i < flameIterations; i++ {
-		_ = helperGodirwalkWalk(b, goPrefix)
+		_ = godirwalkWalk(b, goPrefix)
 	}
 }

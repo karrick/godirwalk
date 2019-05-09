@@ -46,10 +46,6 @@ func TestReadDirents(t *testing.T) {
 			name:     "file3",
 			modeType: 0,
 		},
-		&Dirent{
-			name:     "symlinks",
-			modeType: os.ModeDir,
-		},
 	}
 
 	if got, want := len(entries), len(expected); got != want {
@@ -70,12 +66,12 @@ func TestReadDirents(t *testing.T) {
 }
 
 func TestReadDirentsSymlinks(t *testing.T) {
-	osDirname := filepath.Join(testRoot, "symlinks")
+	osDirname := filepath.Join(testRoot, "dir4")
 
 	// Because some platforms set multiple mode type bits, when we create the
 	// expected slice, we need to ensure the mode types are set appropriately.
 	var expected Dirents
-	for _, pathname := range []string{"dir-symlink", "file-symlink", "invalid-symlink"} {
+	for _, pathname := range []string{"aaa.txt", "symlinkToAbsDirectory", "symlinkToDirectory", "symlinkToFile", "symlinkToNothing", "zzz"} {
 		info, err := os.Lstat(filepath.Join(osDirname, pathname))
 		if err != nil {
 			t.Fatal(err)
@@ -111,7 +107,7 @@ func TestReadDirnames(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []string{"dir1", "dir2", "dir3", "dir4", "dir5", "dir6", "dir7", "file3", "symlinks"}
+	expected := []string{"dir1", "dir2", "dir3", "dir4", "dir5", "dir6", "dir7", "file3"}
 
 	ensureStringSlicesMatch(t, actual, expected)
 }
