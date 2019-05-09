@@ -21,8 +21,11 @@ func TestMain(m *testing.M) {
 	// When cannot complete setup, dump the directory so we see what we have,
 	// then bail.
 	if err := setup(); err != nil {
-		fmt.Fprintf(os.Stderr, "setup: %s\n", err)
+		fmt.Fprintf(os.Stderr, "godirwalk setup: %s\n", err)
 		dumpDirectory()
+		if err := teardown(); err != nil {
+			fmt.Fprintf(os.Stderr, "godirwalk teardown: %s\n", err)
+		}
 		os.Exit(1)
 	}
 
@@ -35,7 +38,7 @@ func TestMain(m *testing.M) {
 	}
 
 	if err := teardown(); err != nil {
-		fmt.Fprintf(os.Stderr, "teardown: %s\n", err)
+		fmt.Fprintf(os.Stderr, "godirwalk teardown: %s\n", err)
 		os.Exit(1)
 	}
 
