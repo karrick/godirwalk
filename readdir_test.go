@@ -55,9 +55,8 @@ func TestReadDirentsSymlinks(t *testing.T) {
 }
 
 func TestReadDirnames(t *testing.T) {
-	t.Skip("FIXME")
-	actual, err := ReadDirnames(testRoot, nil)
+	actual, err := ReadDirnames(filepath.Join(testRoot, "d0"), nil)
 	ensureError(t, err)
-	expected := []string{"dir1", "dir2", "dir3", "symlinks", "dir5", "dir6", "dir4", "file3"}
+	expected := []string{"d1", "f1", "skips", "symlinks"}
 	ensureStringSlicesMatch(t, actual, expected)
 }
