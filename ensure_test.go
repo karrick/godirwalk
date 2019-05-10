@@ -74,28 +74,22 @@ func ensureDirentsMatch(tb testing.TB, actual, expected Dirents) {
 		if ai == al {
 			tb.Errorf("GOT: %s %s (extra)", expected[ei].name, expected[ei].modeType)
 			ei++
-			continue
-		}
-		if ei == el {
+		} else if ei == el {
 			tb.Errorf("WANT: %s %s (missing)", actual[ai].name, actual[ai].modeType)
 			ai++
-			continue
-		}
-		if actual[ai].name < expected[ei].name {
+		} else if actual[ai].name < expected[ei].name {
 			tb.Errorf("GOT: %s %s (extra)", actual[ai].name, actual[ai].modeType)
 			ai++
-			continue
-		}
-		if expected[ei].name < actual[ai].name {
+		} else if expected[ei].name < actual[ai].name {
 			tb.Errorf("WANT: %s %s (missing)", expected[ei].name, expected[ei].modeType)
 			ei++
-			continue
+		} else {
+			// names match; check mode types
+			if got, want := actual[ai].modeType, expected[ei].modeType; got != want {
+				tb.Errorf("GOT: %v; WANT: %v", actual[ai].modeType, expected[ei].modeType)
+			}
+			ai++
+			ei++
 		}
-		// names match; check mode types
-		if got, want := actual[ai].modeType, expected[ei].modeType; got != want {
-			tb.Errorf("GOT: %v; WANT: %v", actual[ai].modeType, expected[ei].modeType)
-		}
-		ai++
-		ei++
 	}
 }

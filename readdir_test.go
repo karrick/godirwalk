@@ -13,6 +13,10 @@ func TestReadDirents(t *testing.T) {
 
 	expected := Dirents{
 		&Dirent{
+			name:     maxName,
+			modeType: os.FileMode(0),
+		},
+		&Dirent{
 			name:     "d1",
 			modeType: os.ModeDir,
 		},
@@ -57,7 +61,7 @@ func TestReadDirentsSymlinks(t *testing.T) {
 func TestReadDirnames(t *testing.T) {
 	actual, err := ReadDirnames(filepath.Join(testRoot, "d0"), nil)
 	ensureError(t, err)
-	expected := []string{"d1", "f1", "skips", "symlinks"}
+	expected := []string{maxName, "d1", "f1", "skips", "symlinks"}
 	ensureStringSlicesMatch(t, actual, expected)
 }
 

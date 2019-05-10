@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -53,6 +54,8 @@ func TestMain(m *testing.M) {
 	}
 }
 
+var maxName string
+
 func setup() error {
 	var err error
 
@@ -61,7 +64,16 @@ func setup() error {
 		return err
 	}
 
+	// max name length is the length of the structure field less one byte to
+	// hold the terminating NULL.
+	var sb strings.Builder
+	for i := 0; i < maxNameLength; i++ {
+		sb.WriteRune('a')
+	}
+	maxName = sb.String()
+
 	entries := []Creater{
+		file{"d0/" + maxName},
 		file{"d0/f0"},               // will be deleted after symlink for it created
 		file{"d0/f1"},               //
 		file{"d0/d1/f2"},            //
