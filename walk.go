@@ -1,6 +1,7 @@
 package godirwalk
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -174,6 +175,10 @@ type WalkFunc func(osPathname string, directoryEntry *Dirent) error
 //        }
 //    }
 func Walk(pathname string, options *Options) error {
+	if options.Callback == nil {
+		return errors.New("cannot walk without a specified Callback function")
+	}
+
 	pathname = filepath.Clean(pathname)
 
 	var fi os.FileInfo
