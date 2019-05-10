@@ -62,22 +62,23 @@ func setup() error {
 	}
 
 	entries := []Creater{
-		file{"dir1/delete"},           // will be deleted after symlink for it created
-		file{"dir1/file1"},            //
-		file{"dir1/dir2/file2"},       //
-		file{"dir1/skips/d3/f3"},      // node precedes skip
-		file{"dir1/skips/d3/skip"},    // skip is non-directory
-		file{"dir1/skips/d3/z1"},      // node follows skip non-directory: should never be visited
-		file{"dir1/skips/d4/f4"},      // node precedes skip
-		file{"dir1/skips/d4/skip/f5"}, // skip is directory: this node should never be visited
-		file{"dir1/skips/d4/z7"},      // node follows skip directory: should be visited
+		file{"d0/f0"},               // will be deleted after symlink for it created
+		file{"d0/f1"},               //
+		file{"d0/d1/f2"},            //
+		file{"d0/skips/d2/f3"},      // node precedes skip
+		file{"d0/skips/d2/skip"},    // skip is non-directory
+		file{"d0/skips/d2/z1"},      // node follows skip non-directory: should never be visited
+		file{"d0/skips/d3/f4"},      // node precedes skip
+		file{"d0/skips/d3/skip/f5"}, // skip is directory: this node should never be visited
+		file{"d0/skips/d3/z2"},      // node follows skip directory: should be visited
 
-		link{"dir1/symlinks/nothing", "../delete"},         // referent will be deleted
-		link{"dir1/symlinks/toFile1", "../file1"},          //
-		link{"dir1/symlinks/toDir2", "../dir2"},            //
-		link{"dir1/symlinks/dir3/toSymlink", "../toFile1"}, // chained symbolic links
+		link{"d0/symlinks/nothing", "../f0"},    // referent will be deleted
+		link{"d0/symlinks/toF1", "../f1"},       //
+		link{"d0/symlinks/toD1", "../d1"},       //
+		link{"d0/symlinks/d4/toSD1", "../toD1"}, // chained symbolic links
+		link{"d0/symlinks/d4/toSF1", "../toF1"}, // chained symbolic links
 
-		file{"noaccess/dir/trap/never"}, // this node should never be visited
+		file{"noaccess/d5/trap/f6"}, // this node should never be visited
 	}
 
 	for _, entry := range entries {
@@ -86,20 +87,20 @@ func setup() error {
 		}
 	}
 
-	oldname, err := filepath.Abs(filepath.Join(testRoot, "dir1/file1"))
+	oldname, err := filepath.Abs(filepath.Join(testRoot, "d0/f1"))
 	if err != nil {
 		return fmt.Errorf("cannot create scaffolding entry: %s", err)
 	}
-	if err := (link{"dir1/symlinks/toAbs", oldname}).Create(); err != nil {
+	if err := (link{"d0/symlinks/toAbs", oldname}).Create(); err != nil {
 		return fmt.Errorf("cannot create scaffolding entry: %s", err)
 	}
 
-	if err := os.Remove(filepath.Join(testRoot, "dir1/delete")); err != nil {
+	if err := os.Remove(filepath.Join(testRoot, "d0/f0")); err != nil {
 		return fmt.Errorf("cannot remove file from test scaffolding: %s", err)
 	}
 
-	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("noaccess/dir/trap")), os.FileMode(0)); err != nil {
-		return fmt.Errorf("cannot change permission to delete noaccess/dir/trap for test scaffolding: %s", err)
+	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("noaccess/d5/trap")), os.FileMode(0)); err != nil {
+		return fmt.Errorf("cannot change permission to delete noaccess/d5/trap for test scaffolding: %s", err)
 	}
 
 	return nil
@@ -110,8 +111,8 @@ func teardown() error {
 		return nil // if we do not even have a test root directory then exit
 	}
 	// Change permissions back to something we will later be permitted to delete.
-	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("noaccess/dir/trap")), os.ModePerm); err != nil {
-		return fmt.Errorf("cannot change permission to delete noaccess/dir/trap for test scaffolding: %s", err)
+	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("noaccess/d5/trap")), os.ModePerm); err != nil {
+		return fmt.Errorf("cannot change permission to delete noaccess/d5/trap for test scaffolding: %s", err)
 	}
 	if err := os.RemoveAll(testRoot); err != nil {
 		return err

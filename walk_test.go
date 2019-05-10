@@ -58,7 +58,7 @@ func ensureSameAsStandardLibrary(tb testing.TB, osDirname string) {
 // root directory.
 func TestWalkCompatibleWithFilepathWalk(t *testing.T) {
 	t.Run("test root", func(t *testing.T) {
-		ensureSameAsStandardLibrary(t, "dir1")
+		ensureSameAsStandardLibrary(t, "d0")
 	})
 }
 
@@ -69,7 +69,7 @@ func TestErrorCallback(t *testing.T) {
 	t.Run("halt", func(t *testing.T) {
 		var callbackVisited, errorCallbackVisited bool
 
-		err := Walk(filepath.Join(testRoot, "noaccess/dir"), &Options{
+		err := Walk(filepath.Join(testRoot, "noaccess/d5"), &Options{
 			ScratchBuffer: testScratchBuffer,
 			Callback: func(osPathname string, dirent *Dirent) error {
 				switch dirent.Name() {
@@ -103,7 +103,7 @@ func TestErrorCallback(t *testing.T) {
 	t.Run("skipnode", func(t *testing.T) {
 		var callbackVisited, errorCallbackVisited bool
 
-		err := Walk(filepath.Join(testRoot, "noaccess/dir"), &Options{
+		err := Walk(filepath.Join(testRoot, "noaccess/d5"), &Options{
 			ScratchBuffer: testScratchBuffer,
 			Callback: func(osPathname string, dirent *Dirent) error {
 				switch dirent.Name() {
@@ -139,20 +139,20 @@ func TestErrorCallback(t *testing.T) {
 // relative positions from the invocation argument.
 func TestWalkSkipDir(t *testing.T) {
 	t.Run("skip file at root", func(t *testing.T) {
-		ensureSameAsStandardLibrary(t, "dir1/skips/d3")
+		ensureSameAsStandardLibrary(t, "d0/skips/d2")
 	})
 
 	t.Run("skip dir at root", func(t *testing.T) {
-		ensureSameAsStandardLibrary(t, "dir1/skips/d4")
+		ensureSameAsStandardLibrary(t, "d0/skips/d3")
 	})
 
 	t.Run("skip nodes under root", func(t *testing.T) {
-		ensureSameAsStandardLibrary(t, "dir1/skips")
+		ensureSameAsStandardLibrary(t, "d0/skips")
 	})
 
 	t.Run("SkipDirOnSymlink", func(t *testing.T) {
 		var actual []string
-		err := Walk(filepath.Join(testRoot, "dir1/skips"), &Options{
+		err := Walk(filepath.Join(testRoot, "d0/skips"), &Options{
 			ScratchBuffer: testScratchBuffer,
 			Callback: func(osPathname string, dirent *Dirent) error {
 				if dirent.Name() == "skip" {
@@ -167,15 +167,12 @@ func TestWalkSkipDir(t *testing.T) {
 		ensureError(t, err)
 
 		expected := []string{
-			filepath.Join(testRoot, "dir1/skips"),
-			filepath.Join(testRoot, "dir1/skips/d3"),
-			filepath.Join(testRoot, "dir1/skips/d3/f3"),
-			// filepath.Join(testRoot, "dir1/skips/d3/z1"), // skipped
-			filepath.Join(testRoot, "dir1/skips/d4"),
-			filepath.Join(testRoot, "dir1/skips/d4/f4"),
-			// filepath.Join(testRoot, "dir1/skips/d4/skip"), // skipped
-			// filepath.Join(testRoot, "dir1/skips/d4/skip/f5"), // skipped
-			filepath.Join(testRoot, "dir1/skips/d4/z7"),
+			filepath.Join(testRoot, "d0/skips"),
+			filepath.Join(testRoot, "d0/skips/d2"),
+			filepath.Join(testRoot, "d0/skips/d2/f3"),
+			filepath.Join(testRoot, "d0/skips/d3"),
+			filepath.Join(testRoot, "d0/skips/d3/f4"),
+			filepath.Join(testRoot, "d0/skips/d3/z2"),
 		}
 
 		ensureStringSlicesMatch(t, actual, expected)
@@ -183,68 +180,51 @@ func TestWalkSkipDir(t *testing.T) {
 }
 
 func TestWalkFollowSymbolicLinks(t *testing.T) {
-	t.Skip("FIXME")
 	var actual []string
-	err := Walk(filepath.Join(testRoot, "symlinks"), &Options{
+	var errorCallbackVisited bool
+
+	err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
 		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
+		},
+		ErrorCallback: func(osPathname string, err error) ErrorAction {
+			if filepath.Base(osPathname) == "nothing" {
+				errorCallbackVisited = true
+				return SkipNode
+			}
+			return Halt
 		},
 		FollowSymbolicLinks: true,
 	})
 
 	ensureError(t, err)
 
-	expected := []string{
-		filepath.Join(testRoot, "symlinks"),
-		filepath.Join(testRoot, "symlinks/aaa.txt"),
-		filepath.Join(testRoot, "symlinks/symlinkToAbsDirectory"),
-		filepath.Join(testRoot, "symlinks/symlinkToAbsDirectory/aaa.txt"),
-		filepath.Join(testRoot, "symlinks/symlinkToDirectory"),
-		filepath.Join(testRoot, "symlinks/symlinkToDirectory/aaa.txt"),
-		filepath.Join(testRoot, "symlinks/symlinkToFile"),
-		filepath.Join(testRoot, "symlinks/zzz"),
-		filepath.Join(testRoot, "symlinks/zzz/aaa.txt"),
+	if got, want := errorCallbackVisited, true; got != want {
+		t.Errorf("GOT: %v; WANT: %v", got, want)
 	}
 
-	ensureStringSlicesMatch(t, actual, expected)
-}
-
-func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
-	t.Skip("FIXME")
-	var actual []string
-	err := Walk(filepath.Join(testRoot, "dir4"), &Options{
-		ScratchBuffer: testScratchBuffer,
-		Callback: func(osPathname string, _ *Dirent) error {
-			actual = append(actual, filepath.FromSlash(osPathname))
-			return nil
-		},
-		FollowSymbolicLinks: true,
-	})
-
-	ensureError(t, err)
-
 	expected := []string{
-		filepath.Join(testRoot, "dir4"),
-		filepath.Join(testRoot, "dir4", "a"),
-		filepath.Join(testRoot, "dir4", "a", "x"),
-		filepath.Join(testRoot, "dir4", "a", "x", "y"),
-		filepath.Join(testRoot, "dir4", "b"),
-		filepath.Join(testRoot, "dir4", "b", "y"),
-		filepath.Join(testRoot, "dir4", "z"),
+		filepath.Join(testRoot, "d0/symlinks"),
+		filepath.Join(testRoot, "d0/symlinks/d4"),
+		filepath.Join(testRoot, "d0/symlinks/d4/toSD1"),    // chained symbolic link
+		filepath.Join(testRoot, "d0/symlinks/d4/toSD1/f2"), // chained symbolic link
+		filepath.Join(testRoot, "d0/symlinks/d4/toSF1"),    // chained symbolic link
+		filepath.Join(testRoot, "d0/symlinks/nothing"),
+		filepath.Join(testRoot, "d0/symlinks/toAbs"),
+		filepath.Join(testRoot, "d0/symlinks/toD1"),
+		filepath.Join(testRoot, "d0/symlinks/toD1/f2"),
+		filepath.Join(testRoot, "d0/symlinks/toF1"),
 	}
 
 	ensureStringSlicesMatch(t, actual, expected)
 }
 
 func TestPostChildrenCallback(t *testing.T) {
-	t.Skip("FIXME")
-	osDirname := filepath.Join(testRoot, "dir5")
-
 	var actual []string
 
-	err := Walk(osDirname, &Options{
+	err := Walk(filepath.Join(testRoot, "d0"), &Options{
 		ScratchBuffer: testScratchBuffer,
 		Callback: func(_ string, _ *Dirent) error {
 			return nil
@@ -258,9 +238,14 @@ func TestPostChildrenCallback(t *testing.T) {
 	ensureError(t, err)
 
 	expected := []string{
-		filepath.Join(testRoot, "dir5/a2/a2a"),
-		filepath.Join(testRoot, "dir5/a2"),
-		filepath.Join(testRoot, "dir5"),
+		filepath.Join(testRoot, "d0"),
+		filepath.Join(testRoot, "d0/d1"),
+		filepath.Join(testRoot, "d0/skips"),
+		filepath.Join(testRoot, "d0/skips/d2"),
+		filepath.Join(testRoot, "d0/skips/d3"),
+		filepath.Join(testRoot, "d0/skips/d3/skip"),
+		filepath.Join(testRoot, "d0/symlinks"),
+		filepath.Join(testRoot, "d0/symlinks/d4"),
 	}
 
 	ensureStringSlicesMatch(t, actual, expected)
