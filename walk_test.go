@@ -250,6 +250,8 @@ func TestPostChildrenCallback(t *testing.T) {
 	ensureStringSlicesMatch(t, actual, expected)
 }
 
+const flameIterations = 10
+
 var goPrefix = filepath.Join(os.Getenv("GOPATH"), "src")
 
 func BenchmarkFilepathWalk(b *testing.B) {
@@ -269,8 +271,6 @@ func BenchmarkGodirwalk(b *testing.B) {
 		_ = godirwalkWalk(b, goPrefix)
 	}
 }
-
-const flameIterations = 10
 
 func BenchmarkFlameGraphFilepathWalk(b *testing.B) {
 	for i := 0; i < flameIterations; i++ {

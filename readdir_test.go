@@ -60,3 +60,45 @@ func TestReadDirnames(t *testing.T) {
 	expected := []string{"d1", "f1", "skips", "symlinks"}
 	ensureStringSlicesMatch(t, actual, expected)
 }
+
+func BenchmarkReadDirnamesStandardLibrary(b *testing.B) {
+	if testing.Short() {
+		b.Skip("Skipping benchmark using user's Go source directory")
+	}
+
+	f := func(osDirname string) ([]string, error) {
+		dh, err := os.Open(osDirname)
+		if err != nil {
+			return nil, err
+		}
+		return dh.Readdirnames(-1)
+	}
+
+	var count int
+
+	for i := 0; i < b.N; i++ {
+		actual, err := f(goPrefix)
+		if err != nil {
+			b.Fatal(err)
+		}
+		count = len(actual)
+	}
+	_ = count
+}
+
+func BenchmarkReadDirnamesThisLibrary(b *testing.B) {
+	if testing.Short() {
+		b.Skip("Skipping benchmark using user's Go source directory")
+	}
+
+	var count int
+
+	for i := 0; i < b.N; i++ {
+		actual, err := ReadDirnames(goPrefix, testScratchBuffer)
+		if err != nil {
+			b.Fatal(err)
+		}
+		count = len(actual)
+	}
+	_ = count
+}
