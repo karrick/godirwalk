@@ -61,90 +61,45 @@ func setup() error {
 		return err
 	}
 
-	// Create files, creating parent directories along the way.
-	files := []string{
-		"dir1/dir1a/file1a1",
-		"dir1/dir1a/skip",
-		"dir1/dir1a/z1a2",
-		"dir1/file1b",
-		"dir2/file2a",
-		"dir2/skip/file2b1",
-		"dir2/z2c/file2c1",
-		"dir3/aaa.txt",
-		"dir3/zzz/aaa.txt",
-		"dir4/aaa.txt",
-		"dir4/zzz/aaa.txt",
-		"dir5/a1.txt",
-		"dir5/a2/a2a/a2a1.txt",
-		"dir5/a2/a2b.txt",
-		"dir6/bravo.txt",
-		"dir6/code/123.txt",
-		"dir7/z",
-		"file3",
+	entries := []Creater{
+		file{"dir1/delete"},           // will be deleted after symlink for it created
+		file{"dir1/file1"},            //
+		file{"dir1/dir2/file2"},       //
+		file{"dir1/skips/d3/f3"},      // node precedes skip
+		file{"dir1/skips/d3/skip"},    // skip is non-directory
+		file{"dir1/skips/d3/z1"},      // node follows skip non-directory: should never be visited
+		file{"dir1/skips/d4/f4"},      // node precedes skip
+		file{"dir1/skips/d4/skip/f5"}, // skip is directory: this node should never be visited
+		file{"dir1/skips/d4/f6"},      // node follows skip directory: should be visited
+
+		link{"dir1/symlinks/nothing", "../delete"},         // referent will be deleted
+		link{"dir1/symlinks/toFile1", "../file1"},          //
+		link{"dir1/symlinks/toDir2", "../dir2"},            //
+		link{"dir1/symlinks/dir3/toSymlink", "../toFile1"}, // chained symbolic links
+
+		file{"noaccess/dir/trap/never"}, // this node should never be visited
 	}
 
-	for _, newname := range files {
-		newname = filepath.Join(testRoot, filepath.FromSlash(newname))
-		if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
-			return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
-		}
-		if err = ioutil.WriteFile(newname, []byte("some test data\n"), os.ModePerm); err != nil {
-			return fmt.Errorf("cannot create file for test scaffolding: %s", err)
+	for _, entry := range entries {
+		if err := entry.Create(); err != nil {
+			return fmt.Errorf("cannot create scaffolding entry: %s", err)
 		}
 	}
 
-	// Create a directory for which the testing user has no access.
-	if err := os.MkdirAll(filepath.Join(testRoot, filepath.FromSlash("dir6/noaccess/dir")), os.FileMode(0)); err != nil {
-		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
-	}
-
-	// Create an symbolic link to an absolute pathname.
-	oldname, err := filepath.Abs(filepath.Join(testRoot, "dir4/zzz"))
+	oldname, err := filepath.Abs(filepath.Join(testRoot, "dir1/file1"))
 	if err != nil {
-		return fmt.Errorf("cannot create absolute pathname for test scaffolding: %s", err)
+		return fmt.Errorf("cannot create scaffolding entry: %s", err)
 	}
-	newname := filepath.Join(testRoot, "dir4/symlinkToAbsDirectory")
-	if err := os.Symlink(oldname, newname); err != nil {
-		return fmt.Errorf("cannot create symlink to absolute directory for test scaffolding: %s", err)
-	}
-
-	// Create a handful of symbolic links, creating parent directories along the
-	// way.
-	symlinks := []struct {
-		newname, oldname string
-	}{
-		// {"dir3/skip", "zzz"},
-		{"dir4/skip", "zzz"},
-		{"dir4/symlinkToDirectory", "zzz"},
-		{"dir4/symlinkToFile", "aaa.txt"},
-		// {"dir4/symlinkToInfinity", "../dir4"},
-		{"dir4/symlinkToNothing", "non-existing-file"},
-		{"dir4/b/y", "../z"},
-		{"dir4/a/x", "../b"},
+	if err := (link{"dir1/symlinks/toAbs", oldname}).Create(); err != nil {
+		return fmt.Errorf("cannot create scaffolding entry: %s", err)
 	}
 
-	for _, entry := range symlinks {
-		newname := filepath.Join(testRoot, filepath.FromSlash(entry.newname))
-		if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
-			return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
-		}
-		oldname := filepath.FromSlash(entry.oldname)
-		if err := os.Symlink(oldname, newname); err != nil {
-			return fmt.Errorf("cannot create symbolic link for test scaffolding: %s", err)
-		}
+	if err := os.Remove(filepath.Join(testRoot, "dir1/delete")); err != nil {
+		return fmt.Errorf("cannot remove file from test scaffolding: %s", err)
 	}
 
-	// Create a few empty directory entries.
-	extraDirs := []string{
-		"dir6/abc",
-		"dir6/def",
-	}
-
-	for _, newname := range extraDirs {
-		newname = filepath.Join(testRoot, filepath.FromSlash(newname))
-		if err := os.MkdirAll(newname, os.ModePerm); err != nil {
-			return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
-		}
+	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("noaccess/dir/trap")), os.FileMode(0)); err != nil {
+		return fmt.Errorf("cannot change permission to delete noaccess/dir/trap for test scaffolding: %s", err)
 	}
 
 	return nil
@@ -155,8 +110,8 @@ func teardown() error {
 		return nil // if we do not even have a test root directory then exit
 	}
 	// Change permissions back to something we will later be permitted to delete.
-	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("dir6/noaccess")), os.ModePerm); err != nil {
-		return fmt.Errorf("cannot change permission to delete dir6/noaccess for test scaffolding: %s", err)
+	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("noaccess/dir/trap")), os.ModePerm); err != nil {
+		return fmt.Errorf("cannot change permission to delete noaccess/dir/trap for test scaffolding: %s", err)
 	}
 	if err := os.RemoveAll(testRoot); err != nil {
 		return err
@@ -195,4 +150,42 @@ func dumpDirectory() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "cannot walk test directory: %s\n", err)
 	}
+}
+
+////////////////////////////////////////
+// helpers to create file system entries for test scaffolding
+
+type Creater interface {
+	Create() error
+}
+
+type file struct {
+	name string
+}
+
+func (f file) Create() error {
+	newname := filepath.Join(testRoot, filepath.FromSlash(f.name))
+	if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
+		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
+	}
+	if err := ioutil.WriteFile(newname, []byte(newname+"\n"), os.ModePerm); err != nil {
+		return fmt.Errorf("cannot create file for test scaffolding: %s", err)
+	}
+	return nil
+}
+
+type link struct {
+	name, referent string
+}
+
+func (s link) Create() error {
+	newname := filepath.Join(testRoot, filepath.FromSlash(s.name))
+	if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
+		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
+	}
+	oldname := filepath.FromSlash(s.referent)
+	if err := os.Symlink(oldname, newname); err != nil {
+		return fmt.Errorf("cannot create symbolic link for test scaffolding: %s", err)
+	}
+	return nil
 }

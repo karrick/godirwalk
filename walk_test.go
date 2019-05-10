@@ -62,9 +62,81 @@ func ensureSameAsStandardLibrary(tb testing.TB, osDirname string) {
 // root directory.
 func TestWalkCompatibleWithFilepathWalk(t *testing.T) {
 	t.Run("test root", func(t *testing.T) {
-		ensureSameAsStandardLibrary(t, "")
+		ensureSameAsStandardLibrary(t, "dir1")
+	})
+}
+
+// While filepath.Walk will deliver the no access error to the regular callback,
+// godirwalk should deliver it first to the ErrorCallback handler, then take
+// action based on the return value of that callback function.
+func TestErrorCallback(t *testing.T) {
+	t.Run("halt", func(t *testing.T) {
+		var callbackVisited, errorCallbackVisited bool
+
+		err := Walk(filepath.Join(testRoot, "noaccess/dir"), &Options{
+			ScratchBuffer: testScratchBuffer,
+			Callback: func(osPathname string, dirent *Dirent) error {
+				switch dirent.Name() {
+				case "never":
+					t.Errorf("Callback VISITED: %v", osPathname)
+				case "trap":
+					callbackVisited = true
+				}
+				return nil
+			},
+			ErrorCallback: func(osPathname string, err error) ErrorAction {
+				switch filepath.Base(osPathname) {
+				case "trap":
+					errorCallbackVisited = true
+					return Halt // Direct Walk to propagate error to caller
+				}
+				t.Fatalf("unexpected error callback for %s: %s", osPathname, err)
+				return SkipNode
+			},
+		})
+
+		ensureError(t, err, "trap") // Ensure caller receives propagated access error
+		if got, want := callbackVisited, true; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+		if got, want := errorCallbackVisited, true; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
 	})
 
+	t.Run("skipnode", func(t *testing.T) {
+		var callbackVisited, errorCallbackVisited bool
+
+		err := Walk(filepath.Join(testRoot, "noaccess/dir"), &Options{
+			ScratchBuffer: testScratchBuffer,
+			Callback: func(osPathname string, dirent *Dirent) error {
+				switch dirent.Name() {
+				case "never":
+					t.Errorf("Callback VISITED: %v", osPathname)
+				case "trap":
+					callbackVisited = true
+				}
+				return nil
+			},
+			ErrorCallback: func(osPathname string, err error) ErrorAction {
+				switch filepath.Base(osPathname) {
+				case "trap":
+					errorCallbackVisited = true
+					return SkipNode // Direct Walk to ignore this error
+				}
+				t.Fatalf("unexpected error callback for %s: %s", osPathname, err)
+				return Halt
+			},
+		})
+
+		ensureError(t, err) // Ensure caller receives no access error
+		if got, want := callbackVisited, true; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+		if got, want := errorCallbackVisited, true; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+	})
 }
 
 // Test cases for encountering the filepath.SkipDir error at different
@@ -116,6 +188,35 @@ func TestWalkSkipDir(t *testing.T) {
 
 func TestWalkFollowSymbolicLinks(t *testing.T) {
 	var actual []string
+	err := Walk(filepath.Join(testRoot, "symlinks"), &Options{
+		ScratchBuffer: testScratchBuffer,
+		Callback: func(osPathname string, _ *Dirent) error {
+			actual = append(actual, filepath.FromSlash(osPathname))
+			return nil
+		},
+		FollowSymbolicLinks: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{
+		filepath.Join(testRoot, "symlinks"),
+		filepath.Join(testRoot, "symlinks/aaa.txt"),
+		filepath.Join(testRoot, "symlinks/symlinkToAbsDirectory"),
+		filepath.Join(testRoot, "symlinks/symlinkToAbsDirectory/aaa.txt"),
+		filepath.Join(testRoot, "symlinks/symlinkToDirectory"),
+		filepath.Join(testRoot, "symlinks/symlinkToDirectory/aaa.txt"),
+		filepath.Join(testRoot, "symlinks/symlinkToFile"),
+		filepath.Join(testRoot, "symlinks/zzz"),
+		filepath.Join(testRoot, "symlinks/zzz/aaa.txt"),
+	}
+
+	ensureStringSlicesMatch(t, actual, expected)
+}
+
+func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
+	var actual []string
 	err := Walk(filepath.Join(testRoot, "dir4"), &Options{
 		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, _ *Dirent) error {
@@ -130,41 +231,12 @@ func TestWalkFollowSymbolicLinks(t *testing.T) {
 
 	expected := []string{
 		filepath.Join(testRoot, "dir4"),
-		filepath.Join(testRoot, "dir4/aaa.txt"),
-		filepath.Join(testRoot, "dir4/symlinkToAbsDirectory"),
-		filepath.Join(testRoot, "dir4/symlinkToAbsDirectory/aaa.txt"),
-		filepath.Join(testRoot, "dir4/symlinkToDirectory"),
-		filepath.Join(testRoot, "dir4/symlinkToDirectory/aaa.txt"),
-		filepath.Join(testRoot, "dir4/symlinkToFile"),
-		filepath.Join(testRoot, "dir4/zzz"),
-		filepath.Join(testRoot, "dir4/zzz/aaa.txt"),
-	}
-
-	ensureStringSlicesMatch(t, actual, expected)
-}
-
-func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
-	var actual []string
-	err := Walk(filepath.Join(testRoot, "dir7"), &Options{
-		ScratchBuffer: testScratchBuffer,
-		Callback: func(osPathname string, _ *Dirent) error {
-			actual = append(actual, filepath.FromSlash(osPathname))
-			return nil
-		},
-		FollowSymbolicLinks: true,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := []string{
-		filepath.Join(testRoot, "dir7"),
-		filepath.Join(testRoot, "dir7", "a"),
-		filepath.Join(testRoot, "dir7", "a", "x"),
-		filepath.Join(testRoot, "dir7", "a", "x", "y"),
-		filepath.Join(testRoot, "dir7", "b"),
-		filepath.Join(testRoot, "dir7", "b", "y"),
-		filepath.Join(testRoot, "dir7", "z"),
+		filepath.Join(testRoot, "dir4", "a"),
+		filepath.Join(testRoot, "dir4", "a", "x"),
+		filepath.Join(testRoot, "dir4", "a", "x", "y"),
+		filepath.Join(testRoot, "dir4", "b"),
+		filepath.Join(testRoot, "dir4", "b", "y"),
+		filepath.Join(testRoot, "dir4", "z"),
 	}
 
 	ensureStringSlicesMatch(t, actual, expected)
