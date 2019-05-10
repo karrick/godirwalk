@@ -221,14 +221,13 @@ func TestWalkFollowSymbolicLinks(t *testing.T) {
 	ensureStringSlicesMatch(t, actual, expected)
 }
 
+// Invokes PostChildrenCallback for all directories and nothing else.
 func TestPostChildrenCallback(t *testing.T) {
 	var actual []string
 
 	err := Walk(filepath.Join(testRoot, "d0"), &Options{
 		ScratchBuffer: testScratchBuffer,
-		Callback: func(_ string, _ *Dirent) error {
-			return nil
-		},
+		Callback:      func(_ string, _ *Dirent) error { return nil },
 		PostChildrenCallback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, osPathname)
 			return nil
@@ -257,7 +256,6 @@ func BenchmarkFilepathWalk(b *testing.B) {
 	if testing.Short() {
 		b.Skip("Skipping benchmark using user's Go source directory")
 	}
-
 	for i := 0; i < b.N; i++ {
 		_ = filepathWalk(b, goPrefix)
 	}
@@ -267,7 +265,6 @@ func BenchmarkGodirwalk(b *testing.B) {
 	if testing.Short() {
 		b.Skip("Skipping benchmark using user's Go source directory")
 	}
-
 	for i := 0; i < b.N; i++ {
 		_ = godirwalkWalk(b, goPrefix)
 	}
