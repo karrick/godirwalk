@@ -70,7 +70,7 @@ func setup() error {
 		file{"dir1/skips/d3/z1"},      // node follows skip non-directory: should never be visited
 		file{"dir1/skips/d4/f4"},      // node precedes skip
 		file{"dir1/skips/d4/skip/f5"}, // skip is directory: this node should never be visited
-		file{"dir1/skips/d4/f6"},      // node follows skip directory: should be visited
+		file{"dir1/skips/d4/z7"},      // node follows skip directory: should be visited
 
 		link{"dir1/symlinks/nothing", "../delete"},         // referent will be deleted
 		link{"dir1/symlinks/toFile1", "../file1"},          //
