@@ -8,9 +8,6 @@ import (
 	"unsafe"
 )
 
-// maxNameLength is size of array less one to account for terminating NULL byte.
-const maxNameLength = len(syscall.Dirent{}.Name) - 1
-
 func nameFromDirent(de *syscall.Dirent) []byte {
 	// Because this GOOS' syscall.Dirent provides a Namlen field that says how
 	// long the name is, this function does not need to search for the NULL

@@ -9,9 +9,6 @@ import (
 	"unsafe"
 )
 
-// maxNameLength is size of array less one to account for terminating NULL byte.
-const maxNameLength = len(syscall.Dirent{}.Name) - 1
-
 // nameOffset is a compile time constant
 const nameOffset = int(unsafe.Offsetof(syscall.Dirent{}.Name))
 

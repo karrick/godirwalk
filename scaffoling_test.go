@@ -6,14 +6,25 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
+// testScratchBufferSize is the size of the buffer to be used when
+// reading file system entries for a given directory while testing.  For
+// production code, 32 KiB is a much more appropriate size as that is the
+// size of Go's allocation slabs.
 const testScratchBufferSize = 16 * 1024
 
-var testScratchBuffer []byte
+// maxName is the tested maximum length of a filename this library will
+// handle.  Previous attempts to set it to one less than the size of
+// syscall.Dirent.Name array resulted in runtime errors trying to create
+// a test scaffolding file whose size exceeded 255 bytes.  This filename
+// is 255 characters long.
+const maxName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+// testRoot is the temporary directory root for scaffold directory.
 var testRoot string
+var testScratchBuffer []byte
 
 func init() {
 	testScratchBuffer = make([]byte, testScratchBufferSize)
@@ -54,8 +65,6 @@ func TestMain(m *testing.M) {
 	}
 }
 
-var maxName string
-
 func setup() error {
 	var err error
 
@@ -63,14 +72,6 @@ func setup() error {
 	if err != nil {
 		return err
 	}
-
-	// max name length is the length of the structure field less one byte to
-	// hold the terminating NULL.
-	var sb strings.Builder
-	for i := 0; i < maxNameLength; i++ {
-		sb.WriteRune('a')
-	}
-	maxName = sb.String()
 
 	entries := []Creater{
 		file{"d0/" + maxName},
