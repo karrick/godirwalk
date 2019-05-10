@@ -9,10 +9,9 @@ import (
 
 func TestReadDirents(t *testing.T) {
 	t.Skip("FIXME")
-	entries, err := ReadDirents(testRoot, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+
+	actual, err := ReadDirents(testRoot, nil)
+	ensureError(t, err)
 
 	expected := Dirents{
 		&Dirent{
@@ -49,18 +48,18 @@ func TestReadDirents(t *testing.T) {
 		},
 	}
 
-	if got, want := len(entries), len(expected); got != want {
+	if got, want := len(actual), len(expected); got != want {
 		t.Fatalf("(GOT) %v; (WNT) %v", got, want)
 	}
 
-	sort.Sort(entries)
+	sort.Sort(actual)
 	sort.Sort(expected)
 
-	for i := 0; i < len(entries); i++ {
-		if got, want := entries[i].name, expected[i].name; got != want {
+	for i := 0; i < len(actual); i++ {
+		if got, want := actual[i].name, expected[i].name; got != want {
 			t.Errorf("(GOT) %v; (WNT) %v", got, want)
 		}
-		if got, want := entries[i].modeType, expected[i].modeType; got != want {
+		if got, want := actual[i].modeType, expected[i].modeType; got != want {
 			t.Errorf("(GOT) %v; (WNT) %v", got, want)
 		}
 	}
@@ -81,23 +80,21 @@ func TestReadDirentsSymlinks(t *testing.T) {
 		expected = append(expected, &Dirent{name: pathname, modeType: info.Mode() & os.ModeType})
 	}
 
-	entries, err := ReadDirents(osDirname, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	actual, err := ReadDirents(osDirname, nil)
+	ensureError(t, err)
 
-	if got, want := len(entries), len(expected); got != want {
+	if got, want := len(actual), len(expected); got != want {
 		t.Fatalf("(GOT) %v; (WNT) %v", got, want)
 	}
 
-	sort.Sort(entries)
+	sort.Sort(actual)
 	sort.Sort(expected)
 
-	for i := 0; i < len(entries); i++ {
-		if got, want := entries[i].name, expected[i].name; got != want {
+	for i := 0; i < len(actual); i++ {
+		if got, want := actual[i].name, expected[i].name; got != want {
 			t.Errorf("(GOT) %v; (WNT) %v", got, want)
 		}
-		if got, want := entries[i].modeType, expected[i].modeType; got != want {
+		if got, want := actual[i].modeType, expected[i].modeType; got != want {
 			t.Errorf("(GOT) %v; (WNT) %v", got, want)
 		}
 	}
@@ -106,11 +103,7 @@ func TestReadDirentsSymlinks(t *testing.T) {
 func TestReadDirnames(t *testing.T) {
 	t.Skip("FIXME")
 	actual, err := ReadDirnames(testRoot, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	ensureError(t, err)
 	expected := []string{"dir1", "dir2", "dir3", "symlinks", "dir5", "dir6", "dir4", "file3"}
-
 	ensureStringSlicesMatch(t, actual, expected)
 }

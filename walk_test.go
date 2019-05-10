@@ -19,9 +19,7 @@ func filepathWalk(tb testing.TB, osDirname string) []string {
 		entries = append(entries, filepath.FromSlash(osPathname))
 		return nil
 	})
-	if err != nil {
-		tb.Fatal(err)
-	}
+	ensureError(tb, err)
 	return entries
 }
 
@@ -38,9 +36,7 @@ func godirwalkWalk(tb testing.TB, osDirname string) []string {
 			return nil
 		},
 	})
-	if err != nil {
-		tb.Fatal(err)
-	}
+	ensureError(tb, err)
 	return entries
 }
 
@@ -167,9 +163,8 @@ func TestWalkSkipDir(t *testing.T) {
 			},
 			FollowSymbolicLinks: true,
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+
+		ensureError(t, err)
 
 		expected := []string{
 			filepath.Join(testRoot, "dir1/skips"),
@@ -198,9 +193,8 @@ func TestWalkFollowSymbolicLinks(t *testing.T) {
 		},
 		FollowSymbolicLinks: true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+
+	ensureError(t, err)
 
 	expected := []string{
 		filepath.Join(testRoot, "symlinks"),
@@ -228,9 +222,8 @@ func TestWalkSymbolicRelativeLinkChain(t *testing.T) {
 		},
 		FollowSymbolicLinks: true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+
+	ensureError(t, err)
 
 	expected := []string{
 		filepath.Join(testRoot, "dir4"),
@@ -261,9 +254,8 @@ func TestPostChildrenCallback(t *testing.T) {
 			return nil
 		},
 	})
-	if err != nil {
-		t.Errorf("(GOT): %v; (WNT): %v", err, nil)
-	}
+
+	ensureError(t, err)
 
 	expected := []string{
 		filepath.Join(testRoot, "dir5/a2/a2a"),
