@@ -62,79 +62,6 @@ func TestWalkCompatibleWithFilepathWalk(t *testing.T) {
 	})
 }
 
-// While filepath.Walk will deliver the no access error to the regular callback,
-// godirwalk should deliver it first to the ErrorCallback handler, then take
-// action based on the return value of that callback function.
-func TestErrorCallback(t *testing.T) {
-	t.Run("halt", func(t *testing.T) {
-		var callbackVisited, errorCallbackVisited bool
-
-		err := Walk(filepath.Join(testRoot, "noaccess/d5"), &Options{
-			ScratchBuffer: testScratchBuffer,
-			Callback: func(osPathname string, dirent *Dirent) error {
-				switch dirent.Name() {
-				case "never":
-					t.Errorf("Callback VISITED: %v", osPathname)
-				case "trap":
-					callbackVisited = true
-				}
-				return nil
-			},
-			ErrorCallback: func(osPathname string, err error) ErrorAction {
-				switch filepath.Base(osPathname) {
-				case "trap":
-					errorCallbackVisited = true
-					return Halt // Direct Walk to propagate error to caller
-				}
-				t.Fatalf("unexpected error callback for %s: %s", osPathname, err)
-				return SkipNode
-			},
-		})
-
-		ensureError(t, err, "trap") // Ensure caller receives propagated access error
-		if got, want := callbackVisited, true; got != want {
-			t.Errorf("GOT: %v; WANT: %v", got, want)
-		}
-		if got, want := errorCallbackVisited, true; got != want {
-			t.Errorf("GOT: %v; WANT: %v", got, want)
-		}
-	})
-
-	t.Run("skipnode", func(t *testing.T) {
-		var callbackVisited, errorCallbackVisited bool
-
-		err := Walk(filepath.Join(testRoot, "noaccess/d5"), &Options{
-			ScratchBuffer: testScratchBuffer,
-			Callback: func(osPathname string, dirent *Dirent) error {
-				switch dirent.Name() {
-				case "never":
-					t.Errorf("Callback VISITED: %v", osPathname)
-				case "trap":
-					callbackVisited = true
-				}
-				return nil
-			},
-			ErrorCallback: func(osPathname string, err error) ErrorAction {
-				switch filepath.Base(osPathname) {
-				case "trap":
-					errorCallbackVisited = true
-					return SkipNode // Direct Walk to ignore this error
-				}
-				t.Fatalf("unexpected error callback for %s: %s", osPathname, err)
-				return Halt
-			},
-		})
-
-		ensureError(t, err) // Ensure caller receives no access error
-		if got, want := callbackVisited, true; got != want {
-			t.Errorf("GOT: %v; WANT: %v", got, want)
-		}
-		if got, want := errorCallbackVisited, true; got != want {
-			t.Errorf("GOT: %v; WANT: %v", got, want)
-		}
-	})
-}
-
 // Test cases for encountering the filepath.SkipDir error at different
 // relative positions from the invocation argument.
 func TestWalkSkipDir(t *testing.T) {
@@ -219,6 +146,77 @@ func TestWalkFollowSymbolicLinks(t *testing.T) {
 	}
 
 	ensureStringSlicesMatch(t, actual, expected)
+}
+
+// While filepath.Walk will deliver the no access error to the regular callback,
+// godirwalk should deliver it first to the ErrorCallback handler, then take
+// action based on the return value of that callback function.
+func TestErrorCallback(t *testing.T) {
+	t.Run("halt", func(t *testing.T) {
+		var callbackVisited, errorCallbackVisited bool
+
+		err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
+			ScratchBuffer: testScratchBuffer,
+			Callback: func(osPathname string, dirent *Dirent) error {
+				switch dirent.Name() {
+				case "nothing":
+					callbackVisited = true
+				}
+				return nil
+			},
+			ErrorCallback: func(osPathname string, err error) ErrorAction {
+				switch filepath.Base(osPathname) {
+				case "nothing":
+					errorCallbackVisited = true
+					return Halt // Direct Walk to propagate error to caller
+				}
+				t.Fatalf("unexpected error callback for %s: %s", osPathname, err)
+				return SkipNode
+			},
+			FollowSymbolicLinks: true,
+		})
+
+		ensureError(t, err, "nothing") // Ensure caller receives propagated access error
+		if got, want := callbackVisited, true; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+		if got, want := errorCallbackVisited, true; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+	})
+
+	t.Run("skipnode", func(t *testing.T) {
+		var callbackVisited, errorCallbackVisited bool
+
+		err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
+			ScratchBuffer: testScratchBuffer,
+			Callback: func(osPathname string, dirent *Dirent) error {
+				switch dirent.Name() {
+				case "nothing":
+					callbackVisited = true
+				}
+				return nil
+			},
+			ErrorCallback: func(osPathname string, err error) ErrorAction {
+				switch filepath.Base(osPathname) {
+				case "nothing":
+					errorCallbackVisited = true
+					return SkipNode // Direct Walk to ignore this error
+				}
+				t.Fatalf("unexpected error callback for %s: %s", osPathname, err)
+				return Halt
+			},
+			FollowSymbolicLinks: true,
+		})
+
+		ensureError(t, err) // Ensure caller receives no access error
+		if got, want := callbackVisited, true; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+		if got, want := errorCallbackVisited, true; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+	})
 }
 
 // Invokes PostChildrenCallback for all directories and nothing else.

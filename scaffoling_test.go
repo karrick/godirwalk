@@ -77,8 +77,6 @@ func setup() error {
 		link{"d0/symlinks/toD1", "../d1"},       //
 		link{"d0/symlinks/d4/toSD1", "../toD1"}, // chained symbolic links
 		link{"d0/symlinks/d4/toSF1", "../toF1"}, // chained symbolic links
-
-		file{"noaccess/d5/trap/f6"}, // this node should never be visited
 	}
 
 	for _, entry := range entries {
@@ -99,20 +97,12 @@ func setup() error {
 		return fmt.Errorf("cannot remove file from test scaffolding: %s", err)
 	}
 
-	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("noaccess/d5/trap")), os.FileMode(0)); err != nil {
-		return fmt.Errorf("cannot change permission to delete noaccess/d5/trap for test scaffolding: %s", err)
-	}
-
 	return nil
 }
 
 func teardown() error {
 	if testRoot == "" {
 		return nil // if we do not even have a test root directory then exit
-	}
-	// Change permissions back to something we will later be permitted to delete.
-	if err := os.Chmod(filepath.Join(testRoot, filepath.FromSlash("noaccess/d5/trap")), os.ModePerm); err != nil {
-		return fmt.Errorf("cannot change permission to delete noaccess/d5/trap for test scaffolding: %s", err)
 	}
 	if err := os.RemoveAll(testRoot); err != nil {
 		return err
