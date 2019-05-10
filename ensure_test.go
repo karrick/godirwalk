@@ -11,7 +11,7 @@ func ensureError(tb testing.TB, err error, contains ...string) {
 	tb.Helper()
 	if len(contains) == 0 || (len(contains) == 1 && contains[0] == "") {
 		if err != nil {
-			tb.Errorf("GOT: %v; WANT: %v", err, contains)
+			tb.Fatalf("GOT: %v; WANT: %v", err, contains)
 		}
 	} else if err == nil {
 		tb.Errorf("GOT: %v; WANT: %v", err, contains)
