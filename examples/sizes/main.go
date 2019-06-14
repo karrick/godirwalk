@@ -47,6 +47,10 @@ func sizes(osDirname string, scratchBuffer []byte) error {
 			_, err = fmt.Printf("%s % 12d %s\n", st.Mode(), size, osPathname)
 			return err
 		},
+		ErrorCallback: func(osPathname string, err error) godirwalk.ErrorAction {
+			fmt.Fprintf(os.Stderr, "%s: %s\n", progname, err)
+			return godirwalk.SkipNode
+		},
 		PostChildrenCallback: func(osPathname string, de *godirwalk.Dirent) error {
 			i := len(sizes) - 1
 			var size int64
