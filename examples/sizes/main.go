@@ -32,13 +32,13 @@ func main() {
 }
 
 func sizes(osDirname string, scratchBuffer []byte) error {
-	var sizes []int64 // LIFO (push, pop semantics)
+	sizes := newSizesStack()
 
 	return godirwalk.Walk(osDirname, &godirwalk.Options{
 		ScratchBuffer: scratchBuffer,
 		Callback: func(osPathname string, de *godirwalk.Dirent) error {
 			if de.IsDir() {
-				sizes = append(sizes, 0)
+				sizes.EnterDirectory()
 				return nil
 			}
 
@@ -48,7 +48,7 @@ func sizes(osDirname string, scratchBuffer []byte) error {
 			}
 
 			size := st.Size()
-			sizes[len(sizes)-1] += size
+			sizes.Accumulate(size)
 
 			_, err = fmt.Printf("%s % 12d %s\n", st.Mode(), size, osPathname)
 			return err
@@ -58,9 +58,7 @@ func sizes(osDirname string, scratchBuffer []byte) error {
 			return godirwalk.SkipNode
 		},
 		PostChildrenCallback: func(osPathname string, de *godirwalk.Dirent) error {
-			i := len(sizes) - 1
-			var size int64
-			size, sizes = sizes[i], sizes[:i]
+			size := sizes.LeaveDirectory()
 
 			st, err := os.Stat(osPathname)
 
@@ -74,4 +72,30 @@ func sizes(osDirname string, scratchBuffer []byte) error {
 			return err
 		},
 	})
+}
+
+// sizesStack encapsulates operations on stack of directory sizes, with similar
+// but slightly modified LIFO semantics to push and pop on a regular stack.
+type sizesStack struct {
+	sizes []int64 // stack of sizes
+	top   int     // index of top of stack
+}
+
+func newSizesStack() *sizesStack {
+	return &sizesStack{top: -1} // -1 implies empty stack
+}
+
+func (s *sizesStack) EnterDirectory() {
+	s.sizes = append(s.sizes, 0)
+	s.top++
+}
+
+func (s *sizesStack) LeaveDirectory() (i int64) {
+	i, s.sizes = s.sizes[s.top], s.sizes[:s.top]
+	s.top--
+	return i
+}
+
+func (s *sizesStack) Accumulate(i int64) {
+	s.sizes[s.top] += i
 }
