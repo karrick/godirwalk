@@ -1,4 +1,4 @@
-package main // imnport "github.com/karrick/godirwalk/examples/clean-empties"
+package main
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package main // imnport "github.com/karrick/godirwalk/examples/walk-stdlib"
+package main
 
 import (
 	"fmt"
