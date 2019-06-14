@@ -1,3 +1,9 @@
+/*
+ * sizes
+ *
+ * Walks a file system hierarchy and prints sizes of file system objects,
+ * recursively printing sizes of directories.
+ */
 package main
 
 import (

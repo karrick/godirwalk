@@ -1,3 +1,8 @@
+/*
+ * walk-fast
+ *
+ * Walks a file system hierarchy using the standard library.
+ */
 package main
 
 import (

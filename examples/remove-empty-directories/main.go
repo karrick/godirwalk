@@ -1,3 +1,8 @@
+/*
+ * remove-empty-directories
+ *
+ * Walks a file system hierarchy and removes all directories with no children.
+ */
 package main
 
 import (
