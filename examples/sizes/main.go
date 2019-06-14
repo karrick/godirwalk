@@ -59,6 +59,7 @@ func sizes(osDirname string, scratchBuffer []byte) error {
 		},
 		PostChildrenCallback: func(osPathname string, de *godirwalk.Dirent) error {
 			size := sizes.LeaveDirectory()
+			sizes.Accumulate(size) // add this directory's size to parent directory.
 
 			st, err := os.Stat(osPathname)
 
