@@ -83,7 +83,8 @@ type sizesStack struct {
 }
 
 func newSizesStack() *sizesStack {
-	return &sizesStack{top: -1} // -1 implies empty stack
+	// Initialize with dummy value at top of stack to eliminate special cases.
+	return &sizesStack{sizes: make([]int64, 1, 32)}
 }
 
 func (s *sizesStack) EnterDirectory() {
