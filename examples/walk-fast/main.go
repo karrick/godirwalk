@@ -1,4 +1,4 @@
-package main
+package main // imnport "github.com/karrick/godirwalk/examples/walk-fast"
 
 import (
 	"fmt"
