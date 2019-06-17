@@ -237,7 +237,6 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		if err == filepath.SkipDir {
 			return err
 		}
-		err = errCallback(err.Error()) // wrap potential errors returned by callback
 		if action := options.ErrorCallback(osPathname, err); action == SkipNode {
 			return nil
 		}
@@ -279,7 +278,6 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 	for _, deChild := range deChildren {
 		osChildname := filepath.Join(osPathname, deChild.name)
 		err = walk(osChildname, deChild, options)
-		//fmt.Fprintf(os.Stderr, "%s: %v\n", osChildname, err)
 		if err == nil {
 			continue
 		}
@@ -297,7 +295,6 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 			}
 			return err // caller does not approve of this error
 		}
-		// fmt.Fprintf(os.Stderr, "isDir: %t %s\n", isDir, osChildname)
 		if !isDir {
 			break // stop processing remaining siblings, but allow post children callback
 		}
@@ -313,13 +310,8 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		return err
 	}
 
-	err = errCallback(err.Error()) // wrap potential errors returned by callback
 	if action := options.ErrorCallback(osPathname, err); action == SkipNode {
 		return nil
 	}
 	return err
 }
-
-type errCallback string
-
-func (e errCallback) Error() string { return string(e) }
