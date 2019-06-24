@@ -29,6 +29,11 @@ func NewDirent(osPathname string) (*Dirent, error) {
 	}, nil
 }
 
+// Dup returns a duplicate of the directory entry.
+func (de Dirent) Dup() *Dirent {
+	return &Dirent{name: de.name, modeType: de.modeType}
+}
+
 // Name returns the basename of the file system entry.
 func (de Dirent) Name() string { return de.name }
 
