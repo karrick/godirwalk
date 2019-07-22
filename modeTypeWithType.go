@@ -13,7 +13,7 @@ import (
 //
 // When the syscall constant is not recognized, this function falls back to a
 // Stat on the file system.
-func modeType(de *syscall.Dirent, osDirname, osChildname string) (os.FileMode, error) {
+func modeType(de *syscall.Dirent, osDirname, osBasename string) (os.FileMode, error) {
 	switch de.Type {
 	case syscall.DT_REG:
 		return 0, nil
@@ -32,7 +32,7 @@ func modeType(de *syscall.Dirent, osDirname, osChildname string) (os.FileMode, e
 	default:
 		// If syscall returned unknown type (e.g., DT_UNKNOWN, DT_WHT),
 		// then resolve actual mode by getting stat.
-		fi, err := os.Lstat(filepath.Join(osDirname, osChildname))
+		fi, err := os.Lstat(filepath.Join(osDirname, osBasename))
 		if err != nil {
 			return 0, err
 		}

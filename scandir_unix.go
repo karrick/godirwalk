@@ -12,9 +12,9 @@ import (
 type DirectoryScanner struct {
 	readBuffer, workBuffer []byte
 	osDirname              string
-	Entry                  Dirent   // most recently decoded directory entry
+	entry                  Dirent   // most recently decoded directory entry
 	dh                     *os.File // file system directory pointer
-	err                    error
+	err, nerr              error
 	fd                     int
 }
 
@@ -41,11 +41,13 @@ func NewDirectoryScanner(osDirname string, scratchBuffer []byte) (*DirectoryScan
 func (s *DirectoryScanner) Close() error {
 	err := s.dh.Close()
 	s.readBuffer, s.workBuffer, s.dh, s.err, s.osDirname = nil, nil, nil, nil, ""
-	s.Entry.name, s.Entry.modeType = "", 0
+	s.entry.name, s.entry.modeType = "", 0
 	return err
 }
 
-func (s *DirectoryScanner) ClearErr() { s.err = nil }
+func (s *DirectoryScanner) Entry() (*Dirent, error) {
+	return &s.entry, s.nerr
+}
 
 func (s *DirectoryScanner) Err() error { return s.err }
 
@@ -87,16 +89,8 @@ func (s *DirectoryScanner) Scan() bool {
 				continue // skip unimportant entries
 			}
 
-			osChildname := string(nameSlice)
-
-			mode, err := modeType(de, s.osDirname, osChildname)
-			if err != nil {
-				s.err = err
-				return false
-			}
-
-			s.Entry.name = osChildname
-			s.Entry.modeType = mode
+			s.entry.name = string(nameSlice)
+			s.entry.modeType, s.nerr = modeType(de, s.osDirname, s.entry.name)
 			return true
 		}
 		// No more data in the work buffer, so loop around in the outside loop

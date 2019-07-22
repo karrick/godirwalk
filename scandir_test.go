@@ -13,7 +13,9 @@ func readdirentsUsingScan(osDirname string, scratchBuffer []byte) (Dirents, erro
 		return nil, err
 	}
 	for scanner.Scan() {
-		entries = append(entries, scanner.Entry.Dup())
+		entry, err := scanner.Entry()
+		_ = err // ignore error from entry
+		entries = append(entries, entry.Dup())
 	}
 	if err = scanner.Close(); err != nil {
 		return nil, err
@@ -28,7 +30,9 @@ func readdirnamesUsingScan(osDirname string, scratchBuffer []byte) ([]string, er
 		return nil, err
 	}
 	for scanner.Scan() {
-		entries = append(entries, scanner.Entry.Name())
+		entry, err := scanner.Entry()
+		_ = err // ignore error from entry
+		entries = append(entries, entry.Name())
 	}
 	if err = scanner.Close(); err != nil {
 		return nil, err
