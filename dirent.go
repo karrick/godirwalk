@@ -1,7 +1,6 @@
 package godirwalk
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 )
@@ -66,10 +65,12 @@ func (de Dirent) IsSymlink() bool { return de.modeType&os.ModeSymlink != 0 }
 
 // If the Dirent is a symlink, then this function
 // will resolve that symlink and return a new Dirent wrapping
-// the resolved filepath on the system. Returns the original Dirent in the case of an error.
+// the resolved filepath on the system.
+// Returns the original Dirent in the case of an error or if the original Dirent.IsSymlink() == false.
 func (de Dirent) FollowSymlink() (*Dirent, error) {
 	if !de.IsSymlink() {
-		return &de, errors.New("Cannot Dirent.FollowSymlink() on non-symlink Dirent!")
+		// return the de unchanged
+		return &de, nil
 	}
 
 	resolvedPath, err := filepath.EvalSymlinks(de.path)
