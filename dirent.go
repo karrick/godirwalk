@@ -1,6 +1,7 @@
 package godirwalk
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 )
@@ -57,6 +58,27 @@ func (de Dirent) IsRegular() bool { return de.modeType&os.ModeType == 0 }
 // points to a directory will have both the directory and the symbolic link bits
 // set.
 func (de Dirent) IsSymlink() bool { return de.modeType&os.ModeSymlink != 0 }
+
+// If the Dirent is a symlink, then this function
+// will resolve that symlink and return a new Dirent wrapping
+// the resolved filepath on the system. Returns the original Dirent in the case of an error.
+func (de Dirent) FollowSymlink() (*Dirent, error) {
+	if !de.IsSymlink() {
+		return &de, errors.New("Cannot Dirent.FollowSymlink() on non-symlink Dirent!")
+	}
+
+	resolvedPath, err := filepath.EvalSymlinks(de.name)
+	if err != nil {
+		return &de, err
+	}
+
+	resolvedDe, err := NewDirent(resolvedPath)
+	if err != nil {
+		return &de, err
+	}
+
+	return resolvedDe, nil
+}
 
 // IsDevice returns true if and only if the Dirent represents a device file.
 func (de Dirent) IsDevice() bool { return de.modeType&os.ModeDevice != 0 }
