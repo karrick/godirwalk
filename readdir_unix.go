@@ -4,6 +4,7 @@ package godirwalk
 
 import (
 	"os"
+	"path/filepath"
 	"syscall"
 	"unsafe"
 )
@@ -54,7 +55,7 @@ func readdirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 				return nil, err
 			}
 
-			entries = append(entries, &Dirent{name: osChildname, modeType: mode})
+			entries = append(entries, &Dirent{path: filepath.Join(osDirname, osChildname), name: osChildname, modeType: mode})
 		}
 	}
 

@@ -9,7 +9,10 @@ package godirwalk
 // Please send PR or link to article if you know of a more performant way of
 // enumerating directory contents and mode types on Windows.
 
-import "os"
+import (
+	"os"
+	"path/filepath"
+)
 
 func readdirents(osDirname string, _ []byte) (Dirents, error) {
 	dh, err := os.Open(osDirname)
@@ -27,7 +30,7 @@ func readdirents(osDirname string, _ []byte) (Dirents, error) {
 
 	entries := make(Dirents, len(fileinfos))
 	for i, info := range fileinfos {
-		entries[i] = &Dirent{name: info.Name(), modeType: info.Mode() & os.ModeType}
+		entries[i] = &Dirent{path: filepath.Join(osDirname, info.Name()), name: info.Name(), modeType: info.Mode() & os.ModeType}
 	}
 
 	return entries, nil
