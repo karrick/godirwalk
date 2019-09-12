@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 )
 
-// Dirent stores the name and file system mode type of discovered file system
+// Dirent stores information about discovered file system
 // entries.
 type Dirent struct {
+	path     string
 	name     string
 	modeType os.FileMode
 }
@@ -24,10 +25,14 @@ func NewDirent(osPathname string) (*Dirent, error) {
 		return nil, err
 	}
 	return &Dirent{
+		path:     osPathname,
 		name:     filepath.Base(osPathname),
 		modeType: fi.Mode() & os.ModeType,
 	}, nil
 }
+
+// Path returns the original filepath used to create the filesystem entity
+func (de Dirent) Path() string { return de.path }
 
 // Name returns the basename of the file system entry.
 func (de Dirent) Name() string { return de.name }
@@ -57,6 +62,34 @@ func (de Dirent) IsRegular() bool { return de.modeType&os.ModeType == 0 }
 // points to a directory will have both the directory and the symbolic link bits
 // set.
 func (de Dirent) IsSymlink() bool { return de.modeType&os.ModeSymlink != 0 }
+
+// If the Dirent is a symlink, then this function
+// will resolve that symlink and return a new Dirent wrapping
+// the resolved filepath on the system.
+// Returns the original Dirent in the case of an error or if the original Dirent.IsSymlink() == false.
+func (de Dirent) FollowSymlink() (*Dirent, error) {
+	if !de.IsSymlink() {
+		// return the de unchanged
+		return &de, nil
+	}
+
+	resolvedPath, err := filepath.EvalSymlinks(de.path)
+	if err != nil {
+		return &de, err
+	}
+
+	absPath, err := filepath.Abs(resolvedPath)
+	if err != nil {
+		return &de, err
+	}
+
+	resolvedDe, err := NewDirent(absPath)
+	if err != nil {
+		return &de, err
+	}
+
+	return resolvedDe, nil
+}
 
 // IsDevice returns true if and only if the Dirent represents a device file.
 func (de Dirent) IsDevice() bool { return de.modeType&os.ModeDevice != 0 }

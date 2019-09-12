@@ -213,6 +213,7 @@ func Walk(pathname string, options *Options) error {
 	}
 
 	dirent := &Dirent{
+		path:     pathname,
 		name:     filepath.Base(pathname),
 		modeType: mode & os.ModeType,
 	}

@@ -7,28 +7,34 @@ import (
 )
 
 func TestReadDirents(t *testing.T) {
-	actual, err := ReadDirents(filepath.Join(testRoot, "d0"), nil)
+	dir := filepath.Join(testRoot, "d0")
+	actual, err := ReadDirents(dir, nil)
 
 	ensureError(t, err)
 
 	expected := Dirents{
 		&Dirent{
+			path:     filepath.Join(dir, maxName),
 			name:     maxName,
 			modeType: os.FileMode(0),
 		},
 		&Dirent{
+			path:     filepath.Join(dir, "d1"),
 			name:     "d1",
 			modeType: os.ModeDir,
 		},
 		&Dirent{
+			path:     filepath.Join(dir, "f1"),
 			name:     "f1",
 			modeType: os.FileMode(0),
 		},
 		&Dirent{
+			path:     filepath.Join(dir, "skips"),
 			name:     "skips",
 			modeType: os.ModeDir,
 		},
 		&Dirent{
+			path:     filepath.Join(dir, "symlinks"),
 			name:     "symlinks",
 			modeType: os.ModeDir,
 		},
@@ -52,7 +58,7 @@ func TestReadDirentsSymlinks(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		expected = append(expected, &Dirent{name: pathname, modeType: info.Mode() & os.ModeType})
+		expected = append(expected, &Dirent{path: filepath.Join(osDirname, pathname), name: pathname, modeType: info.Mode() & os.ModeType})
 	}
 
 	ensureDirentsMatch(t, actual, expected)
