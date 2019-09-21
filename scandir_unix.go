@@ -62,6 +62,7 @@ func (s *DirectoryScanner) done(err error) {
 	s.fd = 0
 }
 
+// Dirent returns the current directory entry while scanning a directory.
 func (s *DirectoryScanner) Dirent() (*Dirent, error) {
 	if s.de == nil {
 		s.de = &Dirent{name: s.childName}
@@ -70,8 +71,11 @@ func (s *DirectoryScanner) Dirent() (*Dirent, error) {
 	return s.de, s.statErr
 }
 
+// Err returns the error associated with scanning a directory.
 func (s *DirectoryScanner) Err() error { return s.err }
 
+// Name returns the name of the current directory entry while scanning a
+// directory.
 func (s *DirectoryScanner) Name() string { return s.childName }
 
 // Scan potentially reads and then decodes the next directory entry from the

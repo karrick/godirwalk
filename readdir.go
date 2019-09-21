@@ -62,9 +62,7 @@ func ReadDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
 		return nil, err
 	}
 	for scanner.Scan() {
-		if dirent, err := scanner.Dirent(); err == nil {
-			entries = append(entries, dirent.Name())
-		}
+		entries = append(entries, scanner.Name())
 	}
 	if err = scanner.Err(); err != nil {
 		return nil, err

@@ -39,9 +39,15 @@ func (s *DirectoryScanner) Close() error {
 	return err
 }
 
+// Dirent returns the current directory entry while scanning a directory.
 func (s *DirectoryScanner) Dirent() (*Dirent, error) { return &s.dirent, s.statErr }
 
+// Err returns the error associated with scanning a directory.
 func (s *DirectoryScanner) Err() error { return s.err }
+
+// Name returns the name of the current directory entry while scanning a
+// directory.
+func (s *DirectoryScanner) Name() string { return s.dirent.name }
 
 // Scan potentially reads and then decodes the next directory entry from the
 // file system.
