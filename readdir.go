@@ -17,8 +17,20 @@ package godirwalk
 //        fmt.Printf("%s %s\n", child.ModeType, child.Name)
 //    }
 func ReadDirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
-	// Invokes build flag enabled version of this function.
-	return readdirents(osDirname, scratchBuffer)
+	var entries Dirents
+	scanner, err := NewDirectoryScanner(osDirname, scratchBuffer)
+	if err != nil {
+		return nil, err
+	}
+	for scanner.Scan() {
+		if dirent, err := scanner.Dirent(); err == nil {
+			entries = append(entries, dirent.Dup())
+		}
+	}
+	if err = scanner.Err(); err != nil {
+		return nil, err
+	}
+	return entries, nil
 }
 
 // ReadDirnames returns a slice of strings, representing the immediate
@@ -44,6 +56,18 @@ func ReadDirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 //        fmt.Printf("%s\n", child)
 //    }
 func ReadDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
-	// Invokes build flag enabled version of this function.
-	return readdirnames(osDirname, scratchBuffer)
+	var entries []string
+	scanner, err := NewDirectoryScanner(osDirname, scratchBuffer)
+	if err != nil {
+		return nil, err
+	}
+	for scanner.Scan() {
+		if dirent, err := scanner.Dirent(); err == nil {
+			entries = append(entries, dirent.Name())
+		}
+	}
+	if err = scanner.Err(); err != nil {
+		return nil, err
+	}
+	return entries, nil
 }

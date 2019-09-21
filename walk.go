@@ -14,17 +14,13 @@ import (
 // MinimumScratchBufferSize bytes. This may seem like a large value; however,
 // when a program intends to enumerate large directories, having a larger
 // scratch buffer results in fewer operating system calls.
-const DefaultScratchBufferSize = 64 * 1024
+const DefaultScratchBufferSize = 16 * 1024
 
 // MinimumScratchBufferSize specifies the minimum size of the scratch buffer
 // that Walk, ReadDirents, and ReadDirnames will use when reading file entries
 // from the operating system. It is initialized to the result from calling
 // `os.Getpagesize()` during program startup.
-var MinimumScratchBufferSize int
-
-func init() {
-	MinimumScratchBufferSize = os.Getpagesize()
-}
+var MinimumScratchBufferSize = os.Getpagesize()
 
 // Options provide parameters for how the Walk function operates.
 type Options struct {

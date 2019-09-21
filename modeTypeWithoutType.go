@@ -14,15 +14,5 @@ import (
 // Because some operating system syscall.Dirent structures do not include a Type
 // field, fall back on Stat of the file system.
 func modeType(_ *syscall.Dirent, osDirname, osBasename string) (os.FileMode, error) {
-	fi, err := os.Lstat(filepath.Join(osDirname, osBasename))
-	if err != nil {
-		return 0, err
-	}
-	// Even though the stat provided all file mode bits, we want to
-	// ensure same values returned to caller regardless of whether
-	// we obtained file mode bits from syscall or stat call.
-	// Therefore mask out the additional file mode bits that are
-	// provided by stat but not by the syscall, so users can rely on
-	// their values.
-	return fi.Mode() & os.ModeType, nil
+	return modeTypeLStat(filepath.Join(osDirname, osBasename))
 }
