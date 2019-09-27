@@ -40,28 +40,6 @@ func NewScanner(osDirname string, scratchBuffer []byte) (*Scanner, error) {
 	return scanner, nil
 }
 
-// done is called when directory scanner unable to continue, with either the
-// triggering error, or nil when there are simply no more entries to read from
-// the directory.
-func (s *Scanner) done(err error) {
-	cerr := s.dh.Close()
-	s.dh = nil
-
-	if err == nil {
-		s.err = cerr
-	} else {
-		s.err = err
-	}
-
-	s.scratchBuffer, s.workBuffer = nil, nil
-	s.osDirname = ""
-	s.childName = ""
-	s.statErr = nil
-	s.de = nil
-	s.sde = nil
-	s.fd = 0
-}
-
 // Dirent returns the current directory entry while scanning a directory.
 func (s *Scanner) Dirent() (*Dirent, error) {
 	if s.de == nil {
@@ -71,8 +49,33 @@ func (s *Scanner) Dirent() (*Dirent, error) {
 	return s.de, s.statErr
 }
 
+// done is called when directory scanner unable to continue, with either the
+// triggering error, or nil when there are simply no more entries to read from
+// the directory.
+func (s *Scanner) done(err error) {
+	if s.dh == nil {
+		return
+	}
+	cerr := s.dh.Close()
+	s.dh = nil
+
+	if err == nil {
+		s.err = cerr
+	} else {
+		s.err = err
+	}
+
+	s.osDirname, s.childName = "", ""
+	s.scratchBuffer, s.workBuffer = nil, nil
+	s.statErr, s.de, s.sde = nil, nil, nil
+	s.fd = 0
+}
+
 // Err returns the error associated with scanning a directory.
-func (s *Scanner) Err() error { return s.err }
+func (s *Scanner) Err() error {
+	s.done(s.err)
+	return s.err
+}
 
 // Name returns the name of the current directory entry while scanning a
 // directory.

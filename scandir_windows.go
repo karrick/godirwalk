@@ -11,7 +11,7 @@ import (
 type Scanner struct {
 	osDirname string
 	dh        *os.File // dh is handle to open directory
-	dirent    *Dirent
+	de        *Dirent
 	err       error // err is the error associated with scanning directory
 }
 
@@ -28,24 +28,38 @@ func NewScanner(osDirname string, _ []byte) (*Scanner, error) {
 	return scanner, nil
 }
 
-// Close releases resources used by the Scanner then returns any error
-// associated with closing the file system directory resource.
-func (s *Scanner) Close() error {
-	err := s.dh.Close()
-	s.dirent.reset()
-	s.osDirname, s.dh, s.err = "", nil, nil
-	return err
+// Dirent returns the current directory entry while scanning a directory.
+func (s *Scanner) Dirent() (*Dirent, error) { return s.de, nil }
+
+// done is called when directory scanner unable to continue, with either the
+// triggering error, or nil when there are simply no more entries to read from
+// the directory.
+func (s *Scanner) done(err error) {
+	if s.dh == nil {
+		return
+	}
+	cerr := s.dh.Close()
+	s.dh = nil
+
+	if err == nil {
+		s.err = cerr
+	} else {
+		s.err = err
+	}
+
+	s.osDirname = ""
+	s.de = nil
 }
 
-// Dirent returns the current directory entry while scanning a directory.
-func (s *Scanner) Dirent() (*Dirent, error) { return s.dirent, nil }
-
 // Err returns the error associated with scanning a directory.
-func (s *Scanner) Err() error { return s.err }
+func (s *Scanner) Err() error {
+	s.done(s.err)
+	return s.err
+}
 
 // Name returns the name of the current directory entry while scanning a
 // directory.
-func (s *Scanner) Name() string { return s.dirent.name }
+func (s *Scanner) Name() string { return s.de.name }
 
 // Scan potentially reads and then decodes the next directory entry from the
 // file system.
@@ -66,7 +80,7 @@ func (s *Scanner) Scan() bool {
 	}
 
 	fi := fileinfos[0]
-	s.dirent = &Dirent{
+	s.de = &Dirent{
 		name:     fi.Name(),
 		modeType: fi.Mode() & os.ModeType,
 	}
