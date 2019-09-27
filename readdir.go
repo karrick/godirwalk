@@ -24,7 +24,7 @@ func ReadDirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 	}
 	for scanner.Scan() {
 		if dirent, err := scanner.Dirent(); err == nil {
-			entries = append(entries, dirent.Dup())
+			entries = append(entries, dirent)
 		}
 	}
 	if err = scanner.Err(); err != nil {
@@ -45,7 +45,7 @@ func ReadDirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 // descendants. Therefore, if your program needs both the names and the file
 // system mode types of descendants, it will always be faster to invoke
 // ReadDirents directly, rather than calling this function, then looping over
-// the results and calling os.Stat for each child.
+// the results and calling os.Stat or os.LStat for each entry.
 //
 //    children, err := godirwalk.ReadDirnames(osDirname, nil)
 //    if err != nil {

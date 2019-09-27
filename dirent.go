@@ -19,23 +19,23 @@ type Dirent struct {
 // functions in this library that read and walk directories, but is provided,
 // however, for the occasion when a program needs to create a Dirent.
 func NewDirent(osPathname string) (*Dirent, error) {
-	fi, err := os.Lstat(osPathname)
+	modeType, err := modeType(osPathname)
 	if err != nil {
 		return nil, err
 	}
 	return &Dirent{
 		name:     filepath.Base(osPathname),
-		modeType: fi.Mode() & os.ModeType,
+		modeType: modeType,
 	}, nil
 }
 
-// Dup returns a duplicate of the directory entry.
-func (de Dirent) Dup() *Dirent {
-	return &Dirent{
-		name:     de.name,
-		modeType: de.modeType,
-	}
-}
+// // dup returns a duplicate of the directory entry.
+// func (de Dirent) dup() *Dirent {
+// 	return &Dirent{
+// 		name:     de.name,
+// 		modeType: de.modeType,
+// 	}
+// }
 
 // Name returns the basename of the file system entry.
 func (de Dirent) Name() string { return de.name }

@@ -8,12 +8,12 @@ import (
 	"syscall"
 )
 
-// modeType converts a syscall defined constant, which is in purview of OS, to a
-// constant defined by Go, assumed by this project to be stable.
+// modeTypeFromDirent converts a syscall defined constant, which is in purview
+// of OS, to a constant defined by Go, assumed by this project to be stable.
 //
 // When the syscall constant is not recognized, this function falls back to a
 // Stat on the file system.
-func modeType(de *syscall.Dirent, osDirname, osBasename string) (os.FileMode, error) {
+func modeTypeFromDirent(de *syscall.Dirent, osDirname, osBasename string) (os.FileMode, error) {
 	switch de.Type {
 	case syscall.DT_REG:
 		return 0, nil
@@ -31,7 +31,7 @@ func modeType(de *syscall.Dirent, osDirname, osBasename string) (os.FileMode, er
 		return os.ModeSocket, nil
 	default:
 		// If syscall returned unknown type (e.g., DT_UNKNOWN, DT_WHT), then
-		// resolve actual mode by getting stat.
-		return modeTypeLStat(filepath.Join(osDirname, osBasename))
+		// resolve actual mode by reading file information.
+		return modeType(filepath.Join(osDirname, osBasename))
 	}
 }

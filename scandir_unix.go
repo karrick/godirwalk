@@ -66,7 +66,7 @@ func (s *DirectoryScanner) done(err error) {
 func (s *DirectoryScanner) Dirent() (*Dirent, error) {
 	if s.de == nil {
 		s.de = &Dirent{name: s.childName}
-		s.de.modeType, s.statErr = modeType(s.sde, s.osDirname, s.childName)
+		s.de.modeType, s.statErr = modeTypeFromDirent(s.sde, s.osDirname, s.childName)
 	}
 	return s.de, s.statErr
 }

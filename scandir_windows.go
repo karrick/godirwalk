@@ -9,11 +9,10 @@ import (
 
 // DirectoryScanner is an iterator to enumerate the contents of a directory.
 type DirectoryScanner struct {
-	dirent    Dirent
 	osDirname string
 	dh        *os.File // dh is handle to open directory
-	statErr   error    // statErr is any error return while attempting to stat an entry
-	err       error    // err is the error associated with scanning directory
+	dirent    *Dirent
+	err       error // err is the error associated with scanning directory
 }
 
 // NewDirectoryScanner returns a new DirectoryScanner.
@@ -34,13 +33,12 @@ func NewDirectoryScanner(osDirname string, _ []byte) (*DirectoryScanner, error) 
 func (s *DirectoryScanner) Close() error {
 	err := s.dh.Close()
 	s.dirent.reset()
-	s.statErr = nil
 	s.osDirname, s.dh, s.err = "", nil, nil
 	return err
 }
 
 // Dirent returns the current directory entry while scanning a directory.
-func (s *DirectoryScanner) Dirent() (*Dirent, error) { return &s.dirent, s.statErr }
+func (s *DirectoryScanner) Dirent() (*Dirent, error) { return s.dirent, nil }
 
 // Err returns the error associated with scanning a directory.
 func (s *DirectoryScanner) Err() error { return s.err }
@@ -68,8 +66,9 @@ func (s *DirectoryScanner) Scan() bool {
 	}
 
 	fi := fileinfos[0]
-	s.dirent.name = fi.Name()
-	s.dirent.modeType = fi.Mode() & os.ModeType
-	// s.dirent.err = nil
+	s.dirent = &Dirent{
+		name:     fi.Name(),
+		modeType: fi.Mode() & os.ModeType,
+	}
 	return true
 }
