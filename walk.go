@@ -17,9 +17,9 @@ import (
 const DefaultScratchBufferSize = 16 * 1024
 
 // MinimumScratchBufferSize specifies the minimum size of the scratch buffer
-// that Walk, ReadDirents, and ReadDirnames will use when reading file entries
-// from the operating system. It is initialized to the result from calling
-// `os.Getpagesize()` during program startup.
+// that Walk, ReadDirents, ReadDirnames, and Scandir will use when reading file
+// entries from the operating system. It is initialized to the result from
+// calling `os.Getpagesize()` during program startup.
 var MinimumScratchBufferSize = os.Getpagesize()
 
 // Options provide parameters for how the Walk function operates.
@@ -259,21 +259,45 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 
 	// If get here, then specified pathname refers to a directory or a
 	// symbolic link to a directory.
-	deChildren, err := ReadDirents(osPathname, options.ScratchBuffer)
-	if err != nil {
-		if action := options.ErrorCallback(osPathname, err); action == SkipNode {
-			return nil
+
+	var ds scanner
+
+	if options.Unsorted {
+		// When upstream does not request a sorted iteration, it's more memory
+		// efficient to read a single child at a time from the file system.
+		ds, err = NewScanner(osPathname)
+		if err != nil {
+			if action := options.ErrorCallback(osPathname, err); action == SkipNode {
+				return nil
+			}
+			return err
 		}
-		return err
+	} else {
+		// When upstream wants a sorted iteration, we must read the entire
+		// directory and sort through the child names, and then iterate on each
+		// child.
+		deChildren, err := ReadDirents(osPathname, nil)
+		if err != nil {
+			if action := options.ErrorCallback(osPathname, err); action == SkipNode {
+				return nil
+			}
+			return err
+		}
+		sort.Sort(deChildren)
+		ds = &dirents{dd: deChildren}
 	}
 
-	if !options.Unsorted {
-		sort.Sort(deChildren) // sort children entries unless upstream says to leave unsorted
-	}
-
-	for _, deChild := range deChildren {
+	for ds.Scan() {
+		deChild, err := ds.Dirent()
 		osChildname := filepath.Join(osPathname, deChild.name)
+		if err != nil {
+			if action := options.ErrorCallback(osChildname, err); action == SkipNode {
+				return nil
+			}
+			return err
+		}
 		err = walk(osChildname, deChild, options)
+		debug("osChildname: %q; error: %v\n", osChildname, err)
 		if err == nil {
 			continue
 		}
@@ -295,6 +319,9 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 			break // stop processing remaining siblings, but allow post children callback
 		}
 		// continue processing remaining siblings
+	}
+	if err = ds.Err(); err != nil {
+		return err
 	}
 
 	if options.PostChildrenCallback == nil {
