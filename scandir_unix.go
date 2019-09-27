@@ -8,8 +8,8 @@ import (
 	"unsafe"
 )
 
-// DirectoryScanner is an iterator to enumerate the contents of a directory.
-type DirectoryScanner struct {
+// Scanner is an iterator to enumerate the contents of a directory.
+type Scanner struct {
 	scratchBuffer []byte // read directory bytes from file system into this buffer
 	workBuffer    []byte // points into scratchBuffer, from which we chunk out directory entries
 	osDirname     string
@@ -22,8 +22,8 @@ type DirectoryScanner struct {
 	fd            int // file descriptor used to read entries from directory
 }
 
-// NewDirectoryScanner returns a new DirectoryScanner.
-func NewDirectoryScanner(osDirname string, scratchBuffer []byte) (*DirectoryScanner, error) {
+// NewScanner returns a new directory Scanner.
+func NewScanner(osDirname string, scratchBuffer []byte) (*Scanner, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func NewDirectoryScanner(osDirname string, scratchBuffer []byte) (*DirectoryScan
 	if len(scratchBuffer) < MinimumScratchBufferSize {
 		scratchBuffer = make([]byte, DefaultScratchBufferSize)
 	}
-	scanner := &DirectoryScanner{
+	scanner := &Scanner{
 		scratchBuffer: scratchBuffer,
 		osDirname:     osDirname,
 		dh:            dh,
@@ -43,7 +43,7 @@ func NewDirectoryScanner(osDirname string, scratchBuffer []byte) (*DirectoryScan
 // done is called when directory scanner unable to continue, with either the
 // triggering error, or nil when there are simply no more entries to read from
 // the directory.
-func (s *DirectoryScanner) done(err error) {
+func (s *Scanner) done(err error) {
 	cerr := s.dh.Close()
 	s.dh = nil
 
@@ -63,7 +63,7 @@ func (s *DirectoryScanner) done(err error) {
 }
 
 // Dirent returns the current directory entry while scanning a directory.
-func (s *DirectoryScanner) Dirent() (*Dirent, error) {
+func (s *Scanner) Dirent() (*Dirent, error) {
 	if s.de == nil {
 		s.de = &Dirent{name: s.childName}
 		s.de.modeType, s.statErr = modeTypeFromDirent(s.sde, s.osDirname, s.childName)
@@ -72,19 +72,18 @@ func (s *DirectoryScanner) Dirent() (*Dirent, error) {
 }
 
 // Err returns the error associated with scanning a directory.
-func (s *DirectoryScanner) Err() error { return s.err }
+func (s *Scanner) Err() error { return s.err }
 
 // Name returns the name of the current directory entry while scanning a
 // directory.
-func (s *DirectoryScanner) Name() string { return s.childName }
+func (s *Scanner) Name() string { return s.childName }
 
 // Scan potentially reads and then decodes the next directory entry from the
 // file system.
 //
-// When it returns false, this releases resources used by the DirectoryScanner
-// then returns any error associated with closing the file system directory
-// resource.
-func (s *DirectoryScanner) Scan() bool {
+// When it returns false, this releases resources used by the Scanner then
+// returns any error associated with closing the file system directory resource.
+func (s *Scanner) Scan() bool {
 	if s.err != nil {
 		return false
 	}

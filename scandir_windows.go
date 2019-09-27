@@ -7,30 +7,30 @@ import (
 	"os"
 )
 
-// DirectoryScanner is an iterator to enumerate the contents of a directory.
-type DirectoryScanner struct {
+// Scanner is an iterator to enumerate the contents of a directory.
+type Scanner struct {
 	osDirname string
 	dh        *os.File // dh is handle to open directory
 	dirent    *Dirent
 	err       error // err is the error associated with scanning directory
 }
 
-// NewDirectoryScanner returns a new DirectoryScanner.
-func NewDirectoryScanner(osDirname string, _ []byte) (*DirectoryScanner, error) {
+// NewScanner returns a new directory Scanner.
+func NewScanner(osDirname string, _ []byte) (*Scanner, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, err
 	}
-	scanner := &DirectoryScanner{
+	scanner := &Scanner{
 		osDirname: osDirname,
 		dh:        dh,
 	}
 	return scanner, nil
 }
 
-// Close releases resources used by the DirectoryScanner then returns any error
+// Close releases resources used by the Scanner then returns any error
 // associated with closing the file system directory resource.
-func (s *DirectoryScanner) Close() error {
+func (s *Scanner) Close() error {
 	err := s.dh.Close()
 	s.dirent.reset()
 	s.osDirname, s.dh, s.err = "", nil, nil
@@ -38,18 +38,18 @@ func (s *DirectoryScanner) Close() error {
 }
 
 // Dirent returns the current directory entry while scanning a directory.
-func (s *DirectoryScanner) Dirent() (*Dirent, error) { return s.dirent, nil }
+func (s *Scanner) Dirent() (*Dirent, error) { return s.dirent, nil }
 
 // Err returns the error associated with scanning a directory.
-func (s *DirectoryScanner) Err() error { return s.err }
+func (s *Scanner) Err() error { return s.err }
 
 // Name returns the name of the current directory entry while scanning a
 // directory.
-func (s *DirectoryScanner) Name() string { return s.dirent.name }
+func (s *Scanner) Name() string { return s.dirent.name }
 
 // Scan potentially reads and then decodes the next directory entry from the
 // file system.
-func (s *DirectoryScanner) Scan() bool {
+func (s *Scanner) Scan() bool {
 	if s.err != nil {
 		return false
 	}
