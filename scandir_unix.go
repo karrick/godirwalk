@@ -23,16 +23,13 @@ type Scanner struct {
 }
 
 // NewScanner returns a new directory Scanner.
-func NewScanner(osDirname string, scratchBuffer []byte) (*Scanner, error) {
+func NewScanner(osDirname string) (*Scanner, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, err
 	}
-	if len(scratchBuffer) < MinimumScratchBufferSize {
-		scratchBuffer = make([]byte, DefaultScratchBufferSize)
-	}
 	scanner := &Scanner{
-		scratchBuffer: scratchBuffer,
+		scratchBuffer: make([]byte, MinimumScratchBufferSize),
 		osDirname:     osDirname,
 		dh:            dh,
 		fd:            int(dh.Fd()),

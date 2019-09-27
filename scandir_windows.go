@@ -16,7 +16,7 @@ type Scanner struct {
 }
 
 // NewScanner returns a new directory Scanner.
-func NewScanner(osDirname string, _ []byte) (*Scanner, error) {
+func NewScanner(osDirname string) (*Scanner, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, err

@@ -5,8 +5,8 @@ package godirwalk
 // descendant of the specified directory. If the specified directory is a
 // symbolic link, it will be resolved.
 //
-// If an optional scratch buffer is provided that is at least one page of
-// memory, it will be used when reading directory entries from the file system.
+// The second parameter was an optional scratch buffer, but is no longer used
+// since ReadDirents invokes Scanner to enumerate the contents of the directory.
 //
 //    children, err := godirwalk.ReadDirents(osDirname, nil)
 //    if err != nil {
@@ -16,9 +16,9 @@ package godirwalk
 //    for _, child := range children {
 //        fmt.Printf("%s %s\n", child.ModeType, child.Name)
 //    }
-func ReadDirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
+func ReadDirents(osDirname string, _ []byte) (Dirents, error) {
 	var entries Dirents
-	scanner, err := NewScanner(osDirname, scratchBuffer)
+	scanner, err := NewScanner(osDirname)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +37,8 @@ func ReadDirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 // descendants of the specified directory. If the specified directory is a
 // symbolic link, it will be resolved.
 //
-// If an optional scratch buffer is provided that is at least one page of
-// memory, it will be used when reading directory entries from the file system.
+// The second parameter was an optional scratch buffer, but is no longer used
+// since ReadDirents invokes Scanner to enumerate the contents of the directory.
 //
 // Note that this function, depending on operating system, may or may not invoke
 // the ReadDirents function, in order to prepare the list of immediate
@@ -55,9 +55,9 @@ func ReadDirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 //    for _, child := range children {
 //        fmt.Printf("%s\n", child)
 //    }
-func ReadDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
+func ReadDirnames(osDirname string, _ []byte) ([]string, error) {
 	var entries []string
-	scanner, err := NewScanner(osDirname, scratchBuffer)
+	scanner, err := NewScanner(osDirname)
 	if err != nil {
 		return nil, err
 	}
