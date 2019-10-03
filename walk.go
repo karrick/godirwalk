@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 )
 
 // DefaultScratchBuffer is a deprecated config parameter, whose usage was
@@ -251,25 +250,17 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		// When upstream does not request a sorted iteration, it's more memory
 		// efficient to read a single child at a time from the file system.
 		ds, err = NewScanner(osPathname)
-		if err != nil {
-			if action := options.ErrorCallback(osPathname, err); action == SkipNode {
-				return nil
-			}
-			return err
-		}
 	} else {
 		// When upstream wants a sorted iteration, we must read the entire
 		// directory and sort through the child names, and then iterate on each
 		// child.
-		deChildren, err := ReadDirents(osPathname, nil)
-		if err != nil {
-			if action := options.ErrorCallback(osPathname, err); action == SkipNode {
-				return nil
-			}
-			return err
+		ds, err = newSortedScanner(osPathname)
+	}
+	if err != nil {
+		if action := options.ErrorCallback(osPathname, err); action == SkipNode {
+			return nil
 		}
-		sort.Sort(deChildren)
-		ds = &dirents{dd: deChildren}
+		return err
 	}
 
 	for ds.Scan() {
