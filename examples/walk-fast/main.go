@@ -6,6 +6,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -13,18 +14,25 @@ import (
 )
 
 func main() {
+	optVerbose := flag.Bool("verbose", false, "Print file system entries.")
+	flag.Parse()
+
 	dirname := "."
-	if len(os.Args) > 1 {
-		dirname = os.Args[1]
+	if flag.NArg() > 0 {
+		dirname = flag.Arg(0)
 	}
+
 	err := godirwalk.Walk(dirname, &godirwalk.Options{
 		Callback: func(osPathname string, de *godirwalk.Dirent) error {
-			// fmt.Printf("%s %s\n", de.ModeType(), osPathname)
+			if *optVerbose {
+				fmt.Printf("%s %s\n", de.ModeType(), osPathname)
+			}
 			return nil
 		},
 		ErrorCallback: func(osPathname string, err error) godirwalk.ErrorAction {
-			// Your program may want to log the error somehow.
-			// fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+			if *optVerbose {
+				fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+			}
 
 			// For the purposes of this example, a simple SkipNode will suffice,
 			// although in reality perhaps additional logic might be called for.

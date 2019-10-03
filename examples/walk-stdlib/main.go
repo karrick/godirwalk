@@ -6,21 +6,28 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 )
 
 func main() {
+	optVerbose := flag.Bool("verbose", false, "Print file system entries.")
+	flag.Parse()
+
 	dirname := "."
-	if len(os.Args) > 1 {
-		dirname = os.Args[1]
+	if flag.NArg() > 0 {
+		dirname = flag.Arg(0)
 	}
+
 	err := filepath.Walk(dirname, func(osPathname string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		// fmt.Printf("%s %s\n", info.Mode(), osPathname)
+		if *optVerbose {
+			fmt.Printf("%s %s\n", info.Mode(), osPathname)
+		}
 		return nil
 	})
 	if err != nil {
