@@ -72,21 +72,21 @@ func ensureDirentsMatch(tb testing.TB, actual, expected Dirents) {
 
 	for ai < al || ei < el {
 		if ai == al {
-			tb.Errorf("GOT: %s %s (extra)", expected[ei].name, expected[ei].modeType)
+			tb.Errorf("GOT: %s %s (extra)", expected[ei].Name(), expected[ei].ModeType())
 			ei++
 		} else if ei == el {
-			tb.Errorf("WANT: %s %s (missing)", actual[ai].name, actual[ai].modeType)
+			tb.Errorf("WANT: %s %s (missing)", actual[ai].Name(), actual[ai].ModeType())
 			ai++
-		} else if actual[ai].name < expected[ei].name {
-			tb.Errorf("GOT: %s %s (extra)", actual[ai].name, actual[ai].modeType)
+		} else if actual[ai].Name() < expected[ei].Name() {
+			tb.Errorf("GOT: %s %s (extra)", actual[ai].Name(), actual[ai].ModeType())
 			ai++
-		} else if expected[ei].name < actual[ai].name {
-			tb.Errorf("WANT: %s %s (missing)", expected[ei].name, expected[ei].modeType)
+		} else if expected[ei].Name() < actual[ai].Name() {
+			tb.Errorf("WANT: %s %s (missing)", expected[ei].Name(), expected[ei].ModeType())
 			ei++
 		} else {
 			// names match; check mode types
-			if got, want := actual[ai].modeType, expected[ei].modeType; got != want {
-				tb.Errorf("GOT: %v; WANT: %v", actual[ai].modeType, expected[ei].modeType)
+			if got, want := actual[ai].ModeType(), expected[ei].ModeType(); got != want {
+				tb.Errorf("GOT: %v; WANT: %v", actual[ai].ModeType(), expected[ei].ModeType())
 			}
 			ai++
 			ei++

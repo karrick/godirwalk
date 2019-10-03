@@ -3,6 +3,7 @@ package godirwalk
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 )
 
@@ -27,7 +28,6 @@ func godirwalkWalk(tb testing.TB, osDirname string) []string {
 	tb.Helper()
 	var entries []string
 	err := Walk(osDirname, &Options{
-		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, dirent *Dirent) error {
 			if dirent.Name() == "skip" {
 				return filepath.SkipDir
@@ -40,12 +40,30 @@ func godirwalkWalk(tb testing.TB, osDirname string) []string {
 	return entries
 }
 
+func godirwalkWalkUnsorted(tb testing.TB, osDirname string) []string {
+	tb.Helper()
+	var entries []string
+	err := Walk(osDirname, &Options{
+		Callback: func(osPathname string, dirent *Dirent) error {
+			if dirent.Name() == "skip" {
+				return filepath.SkipDir
+			}
+			entries = append(entries, filepath.FromSlash(osPathname))
+			return nil
+		},
+		Unsorted: true,
+	})
+	ensureError(tb, err)
+	return entries
+}
+
 // Ensure the results from calling this library's Walk function exactly match
 // those returned by filepath.Walk
 func ensureSameAsStandardLibrary(tb testing.TB, osDirname string) {
 	tb.Helper()
 	osDirname = filepath.Join(testRoot, osDirname)
 	actual := godirwalkWalk(tb, osDirname)
+	sort.Strings(actual)
 	expected := filepathWalk(tb, osDirname)
 	ensureStringSlicesMatch(tb, actual, expected)
 }
@@ -59,6 +77,19 @@ func ensureSameAsStandardLibrary(tb testing.TB, osDirname string) {
 func TestWalkCompatibleWithFilepathWalk(t *testing.T) {
 	t.Run("test root", func(t *testing.T) {
 		ensureSameAsStandardLibrary(t, "d0")
+	})
+	t.Run("ignore skips", func(t *testing.T) {
+		// When filepath.SkipDir is returned, the remainder of the children in a
+		// directory are not visited. This causes results to be different when
+		// visiting in lexicographical order or natural order. For this test, we
+		// want to ensure godirwalk can optimize traversals when unsorted using
+		// the Scanner, but recognize that we cannot test against standard
+		// library when we skip any nodes within it.
+		osDirname := filepath.Join(testRoot, "d0/d1")
+		actual := godirwalkWalkUnsorted(t, osDirname)
+		sort.Strings(actual)
+		expected := filepathWalk(t, osDirname)
+		ensureStringSlicesMatch(t, actual, expected)
 	})
 }
 
@@ -80,7 +111,6 @@ func TestWalkSkipDir(t *testing.T) {
 	t.Run("SkipDirOnSymlink", func(t *testing.T) {
 		var actual []string
 		err := Walk(filepath.Join(testRoot, "d0/skips"), &Options{
-			ScratchBuffer: testScratchBuffer,
 			Callback: func(osPathname string, dirent *Dirent) error {
 				if dirent.Name() == "skip" {
 					return filepath.SkipDir
@@ -111,7 +141,6 @@ func TestWalkFollowSymbolicLinks(t *testing.T) {
 	var errorCallbackVisited bool
 
 	err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
-		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
@@ -156,7 +185,6 @@ func TestErrorCallback(t *testing.T) {
 		var callbackVisited, errorCallbackVisited bool
 
 		err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
-			ScratchBuffer: testScratchBuffer,
 			Callback: func(osPathname string, dirent *Dirent) error {
 				switch dirent.Name() {
 				case "nothing":
@@ -189,7 +217,6 @@ func TestErrorCallback(t *testing.T) {
 		var callbackVisited, errorCallbackVisited bool
 
 		err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
-			ScratchBuffer: testScratchBuffer,
 			Callback: func(osPathname string, dirent *Dirent) error {
 				switch dirent.Name() {
 				case "nothing":
@@ -224,8 +251,7 @@ func TestPostChildrenCallback(t *testing.T) {
 	var actual []string
 
 	err := Walk(filepath.Join(testRoot, "d0"), &Options{
-		ScratchBuffer: testScratchBuffer,
-		Callback:      func(_ string, _ *Dirent) error { return nil },
+		Callback: func(_ string, _ *Dirent) error { return nil },
 		PostChildrenCallback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, osPathname)
 			return nil
@@ -267,6 +293,15 @@ func BenchmarkGodirwalk(b *testing.B) {
 	}
 	for i := 0; i < b.N; i++ {
 		_ = godirwalkWalk(b, goPrefix)
+	}
+}
+
+func BenchmarkGodirwalkUnsorted(b *testing.B) {
+	if testing.Short() {
+		b.Skip("Skipping benchmark using user's Go source directory")
+	}
+	for i := 0; i < b.N; i++ {
+		_ = godirwalkWalkUnsorted(b, goPrefix)
 	}
 }
 
