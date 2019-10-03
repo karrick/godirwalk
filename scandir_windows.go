@@ -4,6 +4,7 @@ package godirwalk
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -54,6 +55,9 @@ func (s *Scanner) done(err error) {
 // Err returns the error associated with scanning a directory.
 func (s *Scanner) Err() error {
 	s.done(s.err)
+	if s.err == io.EOF {
+		return nil
+	}
 	return s.err
 }
 
