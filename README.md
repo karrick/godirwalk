@@ -189,11 +189,13 @@ can be invoked in manner to do so, by setting the
 The default behavior of this library is to always sort the immediate
 descendants of a directory prior to visiting each node, just like
 `filepath.Walk` does. This is usually the desired behavior. However,
-this does come at a performance penalty to sort the names when a
-directory node has many entries. If a particular use case exists that
-does not require sorting the directory's immediate descendants prior
-to visiting its nodes, this library will skip the sorting step when
-the `Unsorted` parameter is set to true.
+this does come at slight performance and memory penalties required to
+sort the names when a directory node has many entries. Additionally if
+caller specifies `Unsorted` enumeration, reading directories is lazily
+performed as the caller consumes entries. If a particular use case
+exists that does not require sorting the directory's immediate
+descendants prior to visiting its nodes, this library will skip the
+sorting step when the `Unsorted` parameter is set to true.
 
 #### Configurable Post Children Callback
 
