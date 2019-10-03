@@ -47,17 +47,27 @@ func pruneEmptyDirectories(osDirname string) (int, error) {
 			return nil
 		},
 		PostChildrenCallback: func(osPathname string, _ *godirwalk.Dirent) error {
-			deChildren, err := godirwalk.ReadDirents(osPathname, nil)
+			s, err := godirwalk.NewScanner(osPathname)
 			if err != nil {
 				return err
 			}
-			// NOTE: ReadDirents skips "." and ".."
-			if len(deChildren) > 0 {
-				return nil // this directory has children; no additional work here
+
+			// Attempt to read only the first directory entry. Remember that
+			// Scan skips both "." and ".." entries.
+			hasAtLeastOneChild := s.Scan()
+
+			// If error reading from directory, wrap up and return.
+			if err := s.Err(); err != nil {
+				return err
+			}
+
+			if hasAtLeastOneChild {
+				return nil // do not remove directory with at least one child
 			}
 			if osPathname == osDirname {
-				return nil // do not remove provided root directory
+				return nil // do not remove directory that was provided top-level directory
 			}
+
 			err = os.Remove(osPathname)
 			if err == nil {
 				count++
