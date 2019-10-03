@@ -8,6 +8,12 @@ import (
 	"unsafe"
 )
 
+// MinimumScratchBufferSize specifies the minimum size of the scratch buffer
+// that Walk, ReadDirents, ReadDirnames, and Scandir will use when reading file
+// entries from the operating system. It is initialized to the result from
+// calling `os.Getpagesize()` during program startup.
+var MinimumScratchBufferSize = os.Getpagesize()
+
 // Scanner is an iterator to enumerate the contents of a directory.
 type Scanner struct {
 	scratchBuffer []byte // read directory bytes from file system into this buffer

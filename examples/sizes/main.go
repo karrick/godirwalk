@@ -22,20 +22,17 @@ func main() {
 		os.Exit(2)
 	}
 
-	scratchBuffer := make([]byte, 64*1024) // allocate once and re-use each time
-
 	for _, arg := range os.Args[1:] {
-		if err := sizes(arg, scratchBuffer); err != nil {
+		if err := sizes(arg); err != nil {
 			fmt.Fprintf(os.Stderr, "%s: %s\n", progname, err)
 		}
 	}
 }
 
-func sizes(osDirname string, scratchBuffer []byte) error {
+func sizes(osDirname string) error {
 	sizes := newSizesStack()
 
 	return godirwalk.Walk(osDirname, &godirwalk.Options{
-		ScratchBuffer: scratchBuffer,
 		Callback: func(osPathname string, de *godirwalk.Dirent) error {
 			if de.IsDir() {
 				sizes.EnterDirectory()

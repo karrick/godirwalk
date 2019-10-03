@@ -28,7 +28,6 @@ func godirwalkWalk(tb testing.TB, osDirname string) []string {
 	tb.Helper()
 	var entries []string
 	err := Walk(osDirname, &Options{
-		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, dirent *Dirent) error {
 			if dirent.Name() == "skip" {
 				return filepath.SkipDir
@@ -45,7 +44,6 @@ func godirwalkWalkUnsorted(tb testing.TB, osDirname string) []string {
 	tb.Helper()
 	var entries []string
 	err := Walk(osDirname, &Options{
-		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, dirent *Dirent) error {
 			if dirent.Name() == "skip" {
 				return filepath.SkipDir
@@ -113,7 +111,6 @@ func TestWalkSkipDir(t *testing.T) {
 	t.Run("SkipDirOnSymlink", func(t *testing.T) {
 		var actual []string
 		err := Walk(filepath.Join(testRoot, "d0/skips"), &Options{
-			ScratchBuffer: testScratchBuffer,
 			Callback: func(osPathname string, dirent *Dirent) error {
 				if dirent.Name() == "skip" {
 					return filepath.SkipDir
@@ -144,7 +141,6 @@ func TestWalkFollowSymbolicLinks(t *testing.T) {
 	var errorCallbackVisited bool
 
 	err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
-		ScratchBuffer: testScratchBuffer,
 		Callback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
@@ -189,7 +185,6 @@ func TestErrorCallback(t *testing.T) {
 		var callbackVisited, errorCallbackVisited bool
 
 		err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
-			ScratchBuffer: testScratchBuffer,
 			Callback: func(osPathname string, dirent *Dirent) error {
 				switch dirent.Name() {
 				case "nothing":
@@ -222,7 +217,6 @@ func TestErrorCallback(t *testing.T) {
 		var callbackVisited, errorCallbackVisited bool
 
 		err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
-			ScratchBuffer: testScratchBuffer,
 			Callback: func(osPathname string, dirent *Dirent) error {
 				switch dirent.Name() {
 				case "nothing":
@@ -257,8 +251,7 @@ func TestPostChildrenCallback(t *testing.T) {
 	var actual []string
 
 	err := Walk(filepath.Join(testRoot, "d0"), &Options{
-		ScratchBuffer: testScratchBuffer,
-		Callback:      func(_ string, _ *Dirent) error { return nil },
+		Callback: func(_ string, _ *Dirent) error { return nil },
 		PostChildrenCallback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, osPathname)
 			return nil

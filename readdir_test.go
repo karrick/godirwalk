@@ -98,7 +98,7 @@ func BenchmarkReadDirnamesThisLibrary(b *testing.B) {
 	var count int
 
 	for i := 0; i < b.N; i++ {
-		actual, err := ReadDirnames(goPrefix, testScratchBuffer)
+		actual, err := ReadDirnames(goPrefix, nil)
 		if err != nil {
 			b.Fatal(err)
 		}

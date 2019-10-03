@@ -54,9 +54,9 @@ How does it obtain this performance boost? It does less work to give
 you nearly the same output. This library calls the same `syscall`
 functions to do the work, but it makes fewer calls, does not throw
 away information that it might need, and creates less memory churn
-along the way by reusing the same scratch buffer rather than
-reallocating a new buffer every time it reads data from the operating
-system.
+along the way by reusing the same scratch buffer for reading from a
+directory rather than reallocating a new buffer every time it reads
+file system entry data from the operating system.
 
 While traversing a file system directory tree, `filepath.Walk` obtains
 the list of immediate descendants of a directory, and throws away the

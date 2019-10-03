@@ -9,12 +9,6 @@ import (
 	"testing"
 )
 
-// testScratchBufferSize is the size of the buffer to be used when
-// reading file system entries for a given directory while testing.  For
-// production code, 32 KiB is a much more appropriate size as that is the
-// size of Go's allocation slabs.
-const testScratchBufferSize = 16 * 1024
-
 // maxName is the tested maximum length of a filename this library will
 // handle.  Previous attempts to set it to one less than the size of
 // syscall.Dirent.Name array resulted in runtime errors trying to create
@@ -24,11 +18,6 @@ const maxName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 // testRoot is the temporary directory root for scaffold directory.
 var testRoot string
-var testScratchBuffer []byte
-
-func init() {
-	testScratchBuffer = make([]byte, testScratchBufferSize)
-}
 
 func TestMain(m *testing.M) {
 	flag.Parse()

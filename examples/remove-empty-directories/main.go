@@ -19,12 +19,11 @@ func main() {
 		os.Exit(2)
 	}
 
-	scratchBuffer := make([]byte, 64*1024) // allocate once and re-use each time
 	var count, total int
 	var err error
 
 	for _, arg := range os.Args[1:] {
-		count, err = pruneEmptyDirectories(arg, scratchBuffer)
+		count, err = pruneEmptyDirectories(arg)
 		total += count
 		if err != nil {
 			break
@@ -38,18 +37,17 @@ func main() {
 	}
 }
 
-func pruneEmptyDirectories(osDirname string, scratchBuffer []byte) (int, error) {
+func pruneEmptyDirectories(osDirname string) (int, error) {
 	var count int
 
 	err := godirwalk.Walk(osDirname, &godirwalk.Options{
-		Unsorted:      true,
-		ScratchBuffer: scratchBuffer,
+		Unsorted: true,
 		Callback: func(_ string, _ *godirwalk.Dirent) error {
 			// no-op while diving in; all the fun happens in PostChildrenCallback
 			return nil
 		},
 		PostChildrenCallback: func(osPathname string, _ *godirwalk.Dirent) error {
-			deChildren, err := godirwalk.ReadDirents(osPathname, scratchBuffer)
+			deChildren, err := godirwalk.ReadDirents(osPathname, nil)
 			if err != nil {
 				return err
 			}

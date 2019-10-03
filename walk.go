@@ -8,19 +8,11 @@ import (
 	"sort"
 )
 
-// DefaultScratchBufferSize specifies the size of the scratch buffer that will
-// be allocated by Walk, ReadDirents, or ReadDirnames when a scratch buffer is
-// not provided or the scratch buffer that is provided is smaller than
-// MinimumScratchBufferSize bytes. This may seem like a large value; however,
-// when a program intends to enumerate large directories, having a larger
-// scratch buffer results in fewer operating system calls.
-const DefaultScratchBufferSize = 16 * 1024
-
-// MinimumScratchBufferSize specifies the minimum size of the scratch buffer
-// that Walk, ReadDirents, ReadDirnames, and Scandir will use when reading file
-// entries from the operating system. It is initialized to the result from
-// calling `os.Getpagesize()` during program startup.
-var MinimumScratchBufferSize = os.Getpagesize()
+// DefaultScratchBuffer is a deprecated config parameter, whose usage was
+// obsoleted by the introduction of the Scanner struct, and migrating
+// ReadDirents, ReadDirnames, and Walk to use Scanner for enumerating directory
+// contents.
+const DefaultScratchBufferSize = 0
 
 // Options provide parameters for how the Walk function operates.
 type Options struct {
@@ -76,12 +68,9 @@ type Options struct {
 	// processed.
 	PostChildrenCallback WalkFunc
 
-	// ScratchBuffer is an optional byte slice to use as a scratch buffer for
-	// Walk to use when reading directory entries, to reduce amount of garbage
-	// generation. Not all architectures take advantage of the scratch
-	// buffer. If omitted or the provided buffer has fewer bytes than
-	// MinimumScratchBufferSize, then a buffer with DefaultScratchBufferSize
-	// bytes will be created and used once per Walk invocation.
+	// ScratchBuffer is a deprecated config parameter, whose usage was obsoleted
+	// by the introduction of the Scanner struct, and migrating ReadDirents,
+	// ReadDirnames, and Walk to use Scanner for enumerating directory contents.
 	ScratchBuffer []byte
 }
 
@@ -202,10 +191,6 @@ func Walk(pathname string, options *Options) error {
 	// handling to be more succinct in the walk code.
 	if options.ErrorCallback == nil {
 		options.ErrorCallback = defaultErrorCallback
-	}
-
-	if len(options.ScratchBuffer) < MinimumScratchBufferSize {
-		options.ScratchBuffer = make([]byte, DefaultScratchBufferSize)
 	}
 
 	dirent := &Dirent{

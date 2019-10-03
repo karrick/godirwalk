@@ -6,7 +6,8 @@ package godirwalk
 // symbolic link, it will be resolved.
 //
 // The second parameter was an optional scratch buffer, but is no longer used
-// since ReadDirents invokes Scanner to enumerate the contents of the directory.
+// because ReadDirents invokes Scanner to enumerate the contents of the
+// directory.
 //
 //    children, err := godirwalk.ReadDirents(osDirname, nil)
 //    if err != nil {
@@ -38,7 +39,8 @@ func ReadDirents(osDirname string, _ []byte) (Dirents, error) {
 // symbolic link, it will be resolved.
 //
 // The second parameter was an optional scratch buffer, but is no longer used
-// since ReadDirents invokes Scanner to enumerate the contents of the directory.
+// because ReadDirents invokes Scanner to enumerate the contents of the
+// directory.
 //
 // Note that this function, depending on operating system, may or may not invoke
 // the ReadDirents function, in order to prepare the list of immediate

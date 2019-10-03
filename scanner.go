@@ -1,9 +1,10 @@
 package godirwalk
 
 type scanner interface {
-	Err() error
-	Scan() bool
 	Dirent() (*Dirent, error)
+	Err() error
+	Name() string
+	Scan() bool
 }
 
 type dirents struct {
@@ -17,6 +18,8 @@ func (d *dirents) Err() error {
 }
 
 func (d *dirents) Dirent() (*Dirent, error) { return d.de, nil }
+
+func (d *dirents) Name() string { return d.de.name }
 
 func (d *dirents) Scan() bool {
 	if len(d.dd) > 0 {
