@@ -126,8 +126,8 @@ func (s *Scanner) Scan() bool {
 
 			nameSlice := nameFromDirent(s.sde)
 			namlen := len(nameSlice)
-			if (namlen == 0) || (namlen == 1 && nameSlice[0] == '.') || (namlen == 2 && nameSlice[0] == '.' && nameSlice[1] == '.') {
-				continue // skip unimportant entries
+			if namlen == 0 || (nameSlice[0] == '.' && (namlen == 1 || (namlen == 2 && nameSlice[1] == '.'))) {
+				continue
 			}
 
 			s.de = nil
