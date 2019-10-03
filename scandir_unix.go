@@ -3,6 +3,7 @@
 package godirwalk
 
 import (
+	"io"
 	"os"
 	"syscall"
 	"unsafe"
@@ -77,6 +78,9 @@ func (s *Scanner) done(err error) {
 // Err returns the error associated with scanning a directory.
 func (s *Scanner) Err() error {
 	s.done(s.err)
+	if s.err == io.EOF {
+		return nil
+	}
 	return s.err
 }
 
@@ -104,7 +108,7 @@ func (s *Scanner) Scan() bool {
 				return false
 			}
 			if n <= 0 { // end of directory
-				s.done(nil)
+				s.done(io.EOF)
 				return false
 			}
 			s.workBuffer = s.scratchBuffer[:n] // trim work buffer to number of bytes read
