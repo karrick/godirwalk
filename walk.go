@@ -170,14 +170,11 @@ func Walk(pathname string, options *Options) error {
 
 	if options.FollowSymbolicLinks {
 		fi, err = os.Stat(pathname)
-		if err != nil {
-			return err
-		}
 	} else {
 		fi, err = os.Lstat(pathname)
-		if err != nil {
-			return err
-		}
+	}
+	if err != nil {
+		return err
 	}
 
 	mode := fi.Mode()
