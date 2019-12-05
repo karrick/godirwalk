@@ -6,25 +6,24 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/karrick/godirwalk"
+	"github.com/karrick/golf"
 	"github.com/mattn/go-isatty"
 )
 
 var (
-	NoColor = os.Getenv("TERM") == "dumb" || (!isatty.IsTerminal(os.Stdout.Fd()) && !isatty.IsCygwinTerminal(os.Stdout.Fd()))
+	NoColor = os.Getenv("TERM") == "dumb" || !(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
 )
 
 func main() {
-	optRegex := flag.String("regex", "", "Do not print unless full path matches regex.")
-	optQuiet := flag.Bool("quiet", false, "Do not print intermediate errors to stderr.")
-	flag.Parse()
+	optRegex := golf.String("regex", "", "Do not print unless full path matches regex.")
+	optQuiet := golf.Bool("quiet", false, "Do not print intermediate errors to stderr.")
+	golf.Parse()
 
 	programName, err := os.Executable()
 	if err != nil {
@@ -41,50 +40,67 @@ func main() {
 		}
 	}
 
-	dirname := "."
-	if flag.NArg() > 0 {
-		dirname = flag.Arg(0)
-	}
+	var buf []byte // only used when color output
 
-	var sb strings.Builder
-
-	err = godirwalk.Walk(dirname, &godirwalk.Options{
-		Callback: func(osPathname string, de *godirwalk.Dirent) error {
-			if nameRE == nil {
-				fmt.Printf("%s\n", osPathname)
-				return nil
-			}
-			if NoColor && nameRE.FindString(osPathname) != "" {
-				fmt.Printf("%s\n", osPathname)
-			} else if matches := nameRE.FindAllStringSubmatchIndex(osPathname, -1); len(matches) > 0 {
-				var prev int
-				for _, tuple := range matches {
-					sb.WriteString(osPathname[prev:tuple[0]])
-					sb.WriteString(yellowOnBlack(osPathname[tuple[0]:tuple[1]]))
-					prev = tuple[1]
-				}
-				sb.WriteString(osPathname[prev:])
-				fmt.Println(sb.String())
-				sb.Reset()
-			}
-			return nil
-		},
+	options := &godirwalk.Options{
 		ErrorCallback: func(osPathname string, err error) godirwalk.ErrorAction {
 			if !*optQuiet {
 				fmt.Fprintf(os.Stderr, "%s: %s\n", programName, err)
 			}
-			// For the purposes of this example, a simple SkipNode will suffice,
-			// although in reality perhaps additional logic might be called for.
 			return godirwalk.SkipNode
 		},
-		Unsorted: true, // set true for faster yet non-deterministic enumeration (see godoc)
-	})
-	if err != nil {
+		Unsorted: true,
+	}
+
+	switch {
+	case nameRE == nil:
+		// When no name pattern provided, print everything.
+		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
+			_, err := fmt.Println(osPathname)
+			return err
+		}
+	case NoColor:
+		// Name pattern was provided, but color not permitted.
+		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
+			var err error
+			if nameRE.FindString(osPathname) != "" {
+				_, err = fmt.Println(osPathname)
+			}
+			return err
+		}
+	default:
+		// Name pattern provided, and color is permitted.
+		buf = append(buf, "\033[m"...) // very first print should reset text attributes
+
+		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
+			matches := nameRE.FindAllStringSubmatchIndex(osPathname, -1)
+			if len(matches) == 0 {
+				return nil // entry does not match pattern
+			}
+
+			var prev int
+			for _, tuple := range matches {
+				buf = append(buf, osPathname[prev:tuple[0]]...)     // print text before match
+				buf = append(buf, "\033[1m"...)                     // bold text
+				buf = append(buf, osPathname[tuple[0]:tuple[1]]...) // print match
+				buf = append(buf, "\033[m"...)                      // normal text
+				prev = tuple[1]
+			}
+
+			buf = append(buf, osPathname[prev:]...)      // print remaining text after final match
+			_, err := os.Stdout.Write(append(buf, '\n')) // don't forget newline
+			buf = buf[:0]                                // reset buffer for next string
+			return err
+		}
+	}
+
+	dirname := "."
+	if golf.NArg() > 0 {
+		dirname = golf.Arg(0)
+	}
+
+	if err = godirwalk.Walk(dirname, options); err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", programName, err)
 		os.Exit(1)
 	}
-}
-
-func yellowOnBlack(s string) string {
-	return fmt.Sprintf("\033[1;33;40m%s\033[0m", s)
 }
