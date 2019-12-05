@@ -70,7 +70,7 @@ func main() {
 		}
 	default:
 		// Name pattern provided, and color is permitted.
-		buf = append(buf, "\033[m"...) // very first print should reset text attributes
+		buf = append(buf, "\033[22m"...) // very first print should set normal intensity
 
 		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
 			matches := nameRE.FindAllStringSubmatchIndex(osPathname, -1)
@@ -81,9 +81,9 @@ func main() {
 			var prev int
 			for _, tuple := range matches {
 				buf = append(buf, osPathname[prev:tuple[0]]...)     // print text before match
-				buf = append(buf, "\033[1m"...)                     // bold text
+				buf = append(buf, "\033[1m"...)                     // bold intensity
 				buf = append(buf, osPathname[tuple[0]:tuple[1]]...) // print match
-				buf = append(buf, "\033[m"...)                      // normal text
+				buf = append(buf, "\033[22m"...)                    // normal intensity
 				prev = tuple[1]
 			}
 
