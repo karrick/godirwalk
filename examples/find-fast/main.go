@@ -16,9 +16,7 @@ import (
 	"github.com/mattn/go-isatty"
 )
 
-var (
-	NoColor = os.Getenv("TERM") == "dumb" || !(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
-)
+var NoColor = os.Getenv("TERM") == "dumb" || !(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
 
 func main() {
 	optRegex := golf.String("regex", "", "Do not print unless full path matches regex.")
