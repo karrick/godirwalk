@@ -12,37 +12,53 @@ import (
 	"regexp"
 
 	"github.com/karrick/godirwalk"
-	"github.com/karrick/golf"
 	"github.com/mattn/go-isatty"
 )
 
 var NoColor = os.Getenv("TERM") == "dumb" || !(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
 
 func main() {
-	optRegex := golf.String("regex", "", "Do not print unless full path matches regex.")
-	optQuiet := golf.Bool("quiet", false, "Do not print intermediate errors to stderr.")
-	golf.Parse()
-
 	programName, err := os.Executable()
 	if err != nil {
 		programName = os.Args[0]
 	}
 	programName = filepath.Base(programName)
 
+	var args []string
 	var nameRE *regexp.Regexp
-	if *optRegex != "" {
-		nameRE, err = regexp.Compile(*optRegex)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s: invalid regex pattern: %s\n", programName, err)
-			os.Exit(2)
+	var optQuiet bool
+	var optWarn bool
+
+	for i, l := 1, len(os.Args); i < l; i++ {
+		switch arg := os.Args[i]; arg {
+		case "--regex":
+			if i++; i == l {
+				fmt.Fprintf(os.Stderr, "%s: option requires argument: %q\n", programName, arg)
+				os.Exit(2)
+			}
+			nameRE, err = regexp.Compile(os.Args[i])
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%s: invalid regex pattern: %s\n", programName, err)
+				os.Exit(2)
+			}
+		case "--quiet":
+			optQuiet = true
+		case "--warn":
+			optWarn = true
+		default:
+			args = append(args, arg)
 		}
+	}
+
+	if len(args) == 0 {
+		args = append(args, ".")
 	}
 
 	var buf []byte // only used when color output
 
 	options := &godirwalk.Options{
 		ErrorCallback: func(osPathname string, err error) godirwalk.ErrorAction {
-			if !*optQuiet {
+			if !optQuiet {
 				fmt.Fprintf(os.Stderr, "%s: %s\n", programName, err)
 			}
 			return godirwalk.SkipNode
@@ -92,13 +108,14 @@ func main() {
 		}
 	}
 
-	dirname := "."
-	if golf.NArg() > 0 {
-		dirname = golf.Arg(0)
-	}
-
-	if err = godirwalk.Walk(dirname, options); err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", programName, err)
-		os.Exit(1)
+	for _, arg := range args {
+		if err = godirwalk.Walk(arg, options); err != nil {
+			if !optQuiet {
+				fmt.Fprintf(os.Stderr, "%s: %s\n", programName, err)
+			}
+			if !optWarn {
+				os.Exit(1)
+			}
+		}
 	}
 }
