@@ -145,15 +145,15 @@ func (s *Scanner) Scan() bool {
 			s.sde = (*syscall.Dirent)(unsafe.Pointer(&s.workBuffer[0])) // point entry to first syscall.Dirent in buffer
 
 			nameSlice := nameFromDirent(s.sde)
-			namlen := len(nameSlice)
+			nameLength := len(nameSlice)
 
-			s.workBuffer = s.workBuffer[direntReclen(s.sde, uint64(namlen)):] // advance buffer for next iteration through loop
+			s.workBuffer = s.workBuffer[direntReclen(s.sde, uint64(nameLength)):] // advance buffer for next iteration through loop
 
 			if inoFromDirent(s.sde) == 0 {
 				continue // inode set to 0 indicates an entry that was marked as deleted
 			}
 
-			if namlen == 0 || (nameSlice[0] == '.' && (namlen == 1 || (namlen == 2 && nameSlice[1] == '.'))) {
+			if nameLength == 0 || (nameSlice[0] == '.' && (nameLength == 1 || (nameLength == 2 && nameSlice[1] == '.'))) {
 				continue
 			}
 
