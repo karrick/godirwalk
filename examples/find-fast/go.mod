@@ -6,6 +6,7 @@ require (
 	github.com/karrick/godirwalk v1.13.5
 	github.com/karrick/golf v1.4.0
 	github.com/mattn/go-isatty v0.0.11
+	github.com/xo/terminfo v0.0.0-20190125114736-1a4775eeeb62
 	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
 )
 
