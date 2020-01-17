@@ -49,12 +49,19 @@ type Scanner struct {
 //         fatal("cannot scan directory: %s", err)
 //     }
 func NewScanner(osDirname string) (*Scanner, error) {
+	return NewScannerWithScratchBuffer(osDirname, nil)
+}
+
+func NewScannerWithScratchBuffer(osDirname string, scratchBuffer []byte) (*Scanner, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, err
 	}
+	if len(scratchBuffer) < MinimumScratchBufferSize {
+		scratchBuffer = make([]byte, MinimumScratchBufferSize)
+	}
 	scanner := &Scanner{
-		scratchBuffer: make([]byte, MinimumScratchBufferSize),
+		scratchBuffer: scratchBuffer,
 		osDirname:     osDirname,
 		dh:            dh,
 		fd:            int(dh.Fd()),
