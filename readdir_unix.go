@@ -11,7 +11,6 @@ import (
 func readDirents(osDirname string, scratchBuffer []byte) ([]*Dirent, error) {
 	var entries []*Dirent
 	var workBuffer []byte
-	var sde *syscall.Dirent
 
 	dh, err := os.Open(osDirname)
 	if err != nil {
@@ -41,7 +40,7 @@ reloadWorkBuffer:
 getNextEntry:
 	// Loop until we have a usable file system entry, or we run out of data
 	// in the work buffer.
-	sde = (*syscall.Dirent)(unsafe.Pointer(&workBuffer[0])) // point entry to first syscall.Dirent in buffer
+	sde := (*syscall.Dirent)(unsafe.Pointer(&workBuffer[0])) // point entry to first syscall.Dirent in buffer
 	workBuffer = workBuffer[reclen(sde):] // advance buffer for next iteration through loop
 
 	if inoFromDirent(sde) == 0 {
