@@ -228,14 +228,14 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		if !options.FollowSymbolicLinks {
 			return nil
 		}
-		isDir, err := isSymlinkToDirectory(dirent, osPathname)
+		info, err := os.Stat(osPathname) // get information for referent
 		if err != nil {
 			if action := options.ErrorCallback(osPathname, err); action == SkipNode {
 				return nil
 			}
 			return err
 		}
-		if !isDir {
+		if !info.IsDir() {
 			return nil
 		}
 	} else if !dirent.IsDir() {
