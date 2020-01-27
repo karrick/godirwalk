@@ -37,40 +37,57 @@ func TestScannerDirent(t *testing.T) {
 }
 
 func TestScanDir(t *testing.T) {
-	var actual []*Dirent
+	t.Run("dirent", func(t *testing.T) {
+		var actual []*Dirent
 
-	scanner, err := NewScanner(filepath.Join(testRoot, "d0"))
-	ensureError(t, err)
-
-	for scanner.Scan() {
-		dirent, err := scanner.Dirent()
+		scanner, err := NewScanner(filepath.Join(testRoot, "d0"))
 		ensureError(t, err)
-		actual = append(actual, dirent)
-	}
-	ensureError(t, scanner.Err())
 
-	expected := Dirents{
-		&Dirent{
-			name:     maxName,
-			modeType: os.FileMode(0),
-		},
-		&Dirent{
-			name:     "d1",
-			modeType: os.ModeDir,
-		},
-		&Dirent{
-			name:     "f1",
-			modeType: os.FileMode(0),
-		},
-		&Dirent{
-			name:     "skips",
-			modeType: os.ModeDir,
-		},
-		&Dirent{
-			name:     "symlinks",
-			modeType: os.ModeDir,
-		},
-	}
+		for scanner.Scan() {
+			dirent, err := scanner.Dirent()
+			ensureError(t, err)
+			actual = append(actual, dirent)
+		}
+		ensureError(t, scanner.Err())
 
-	ensureDirentsMatch(t, actual, expected)
+		expected := Dirents{
+			&Dirent{
+				name:     maxName,
+				modeType: os.FileMode(0),
+			},
+			&Dirent{
+				name:     "d1",
+				modeType: os.ModeDir,
+			},
+			&Dirent{
+				name:     "f1",
+				modeType: os.FileMode(0),
+			},
+			&Dirent{
+				name:     "skips",
+				modeType: os.ModeDir,
+			},
+			&Dirent{
+				name:     "symlinks",
+				modeType: os.ModeDir,
+			},
+		}
+
+		ensureDirentsMatch(t, actual, expected)
+	})
+
+	t.Run("name", func(t *testing.T) {
+		var actual []string
+
+		scanner, err := NewScanner(filepath.Join(testRoot, "d0"))
+		ensureError(t, err)
+
+		for scanner.Scan() {
+			actual = append(actual, scanner.Name())
+		}
+		ensureError(t, scanner.Err())
+
+		expected := []string{maxName, "d1", "f1", "skips", "symlinks"}
+		ensureStringSlicesMatch(t, actual, expected)
+	})
 }
