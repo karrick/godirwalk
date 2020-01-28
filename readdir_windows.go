@@ -2,6 +2,8 @@
 
 package godirwalk
 
+import "os"
+
 // MinimumScratchBufferSize specifies the minimum size of the scratch buffer
 // that ReadDirents, ReadDirnames, Scanner, and Walk will use when reading file
 // entries from the operating system. During program startup it is initialized
@@ -11,33 +13,53 @@ var MinimumScratchBufferSize = 0
 
 func newScratchBuffer() []byte { return nil }
 
-func readDirents(osDirname string, _ []byte) (Dirents, error) {
-	var entries Dirents
-	scanner, err := NewScanner(osDirname)
+func readDirents(osDirname string, _ []byte) ([]*Dirent, error) {
+	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, err
 	}
-	for scanner.Scan() {
-		if dirent, err := scanner.Dirent(); err == nil {
-			entries = append(entries, dirent)
+
+	fileinfos, err := dh.Readdir(-1)
+	if err != nil {
+		_ = dh.Close()
+		return nil, err
+	}
+
+	entries := make([]*Dirent, len(fileinfos))
+
+	for i, fi := range fileinfos {
+		entries[i] = &Dirent{
+			name:     fi.Name(),
+			path:     osDirname,
+			modeType: fi.Mode() & os.ModeType,
 		}
 	}
-	if err = scanner.Err(); err != nil {
+
+	if err = dh.Close(); err != nil {
 		return nil, err
 	}
 	return entries, nil
 }
 
 func readDirnames(osDirname string, _ []byte) ([]string, error) {
-	var entries []string
-	scanner, err := NewScanner(osDirname)
+	dh, err := os.Open(osDirname)
 	if err != nil {
 		return nil, err
 	}
-	for scanner.Scan() {
-		entries = append(entries, scanner.Name())
+
+	fileinfos, err := dh.Readdir(-1)
+	if err != nil {
+		_ = dh.Close()
+		return nil, err
 	}
-	if err = scanner.Err(); err != nil {
+
+	entries := make([]string, len(fileinfos))
+
+	for i, fi := range fileinfos {
+		entries[i] = fi.Name()
+	}
+
+	if err = dh.Close(); err != nil {
 		return nil, err
 	}
 	return entries, nil
