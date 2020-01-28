@@ -3,17 +3,10 @@
 package godirwalk
 
 import (
-	"io"
 	"os"
 	"syscall"
 	"unsafe"
 )
-
-// MinimumScratchBufferSize specifies the minimum size of the scratch buffer
-// that Walk, ReadDirents, ReadDirnames, and Scandir will use when reading file
-// entries from the operating system. It is initialized to the result from
-// calling `os.Getpagesize()` during program startup.
-var MinimumScratchBufferSize = os.Getpagesize()
 
 // Scanner is an iterator to enumerate the contents of a directory.
 type Scanner struct {
@@ -85,31 +78,26 @@ func (s *Scanner) done(err error) {
 	if s.dh == nil {
 		return
 	}
-	cerr := s.dh.Close()
-	s.dh = nil
 
-	if err == nil {
+	if cerr := s.dh.Close(); err == nil {
 		s.err = cerr
-	} else {
-		s.err = err
 	}
 
 	s.osDirname, s.childName = "", ""
 	s.scratchBuffer, s.workBuffer = nil, nil
-	s.statErr, s.de, s.sde = nil, nil, nil
+	s.dh, s.de, s.sde, s.statErr = nil, nil, nil, nil
 	s.fd = 0
 }
 
-// Err returns the error associated with scanning a directory.
+// Err returns any error associated with scanning a directory. It is normal to
+// call Err after Scan returns false, even though they both ensure Scanner
+// resources are released. Do not call until done scanning a directory.
 func (s *Scanner) Err() error {
-	s.done(s.err)
-	if s.err == io.EOF {
-		return nil
-	}
+	s.done(nil)
 	return s.err
 }
 
-// Name returns the name of the current directory entry while scanning a
+// Name returns the base name of the current directory entry while scanning a
 // directory.
 func (s *Scanner) Name() string { return s.childName }
 
@@ -119,48 +107,44 @@ func (s *Scanner) Name() string { return s.childName }
 // When it returns false, this releases resources used by the Scanner then
 // returns any error associated with closing the file system directory resource.
 func (s *Scanner) Scan() bool {
-	if s.err != nil {
+	if s.dh == nil {
 		return false
 	}
+
+	s.de = nil
 
 	for {
 		// When the work buffer has nothing remaining to decode, we need to load
 		// more data from disk.
 		if len(s.workBuffer) == 0 {
 			n, err := syscall.ReadDirent(s.fd, s.scratchBuffer)
+			// n, err := unix.ReadDirent(s.fd, s.scratchBuffer)
 			if err != nil {
 				s.done(err)
 				return false
 			}
-			if n <= 0 { // end of directory
-				s.done(io.EOF)
+			if n <= 0 { // end of directory: normal exit
+				s.done(nil)
 				return false
 			}
 			s.workBuffer = s.scratchBuffer[:n] // trim work buffer to number of bytes read
 		}
 
-		// Loop until we have a usable file system entry, or we run out of data
-		// in the work buffer.
-		for len(s.workBuffer) > 0 {
-			s.sde = (*syscall.Dirent)(unsafe.Pointer(&s.workBuffer[0])) // point entry to first syscall.Dirent in buffer
-			s.workBuffer = s.workBuffer[reclen(s.sde):]                 // advance buffer for next iteration through loop
+		s.sde = (*syscall.Dirent)(unsafe.Pointer(&s.workBuffer[0])) // point entry to first syscall.Dirent in buffer
+		s.workBuffer = s.workBuffer[reclen(s.sde):]                 // advance buffer for next iteration through loop
 
-			if inoFromDirent(s.sde) == 0 {
-				continue // inode set to 0 indicates an entry that was marked as deleted
-			}
-
-			nameSlice := nameFromDirent(s.sde)
-			nameLength := len(nameSlice)
-
-			if nameLength == 0 || (nameSlice[0] == '.' && (nameLength == 1 || (nameLength == 2 && nameSlice[1] == '.'))) {
-				continue
-			}
-
-			s.de = nil
-			s.childName = string(nameSlice)
-			return true
+		if inoFromDirent(s.sde) == 0 {
+			continue // inode set to 0 indicates an entry that was marked as deleted
 		}
-		// No more data in the work buffer, so loop around in the outside loop
-		// to fetch more data.
+
+		nameSlice := nameFromDirent(s.sde)
+		nameLength := len(nameSlice)
+
+		if nameLength == 0 || (nameSlice[0] == '.' && (nameLength == 1 || (nameLength == 2 && nameSlice[1] == '.'))) {
+			continue
+		}
+
+		s.childName = string(nameSlice)
+		return true
 	}
 }
