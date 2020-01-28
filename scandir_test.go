@@ -6,61 +6,61 @@ import (
 	"testing"
 )
 
-func TestScannerDirent(t *testing.T) {
-	scanner, err := NewScanner(filepath.Join(testRoot, "d0/symlinks"))
-	ensureError(t, err)
+func TestScanner(t *testing.T) {
+	t.Run("collect names", func(t *testing.T) {
+		var actual []string
 
-	var found bool
+		scanner, err := NewScanner(filepath.Join(scaffolingRoot, "d0"))
+		ensureError(t, err)
 
-	for scanner.Scan() {
-		if scanner.Name() != "toD1" {
-			continue
+		for scanner.Scan() {
+			actual = append(actual, scanner.Name())
 		}
-		found = true
+		ensureError(t, scanner.Err())
 
-		de, err := scanner.Dirent()
+		expected := []string{maxName, "d1", "f1", "skips", "symlinks"}
+		ensureStringSlicesMatch(t, actual, expected)
+	})
+
+	t.Run("collect dirents", func(t *testing.T) {
+		var actual []*Dirent
+
+		testroot := filepath.Join(scaffolingRoot, "d0")
+
+		scanner, err := NewScanner(testroot)
 		ensureError(t, err)
 
-		got, err := de.IsDirOrSymlinkToDir()
-		ensureError(t, err)
-
-		if want := true; got != want {
-			t.Errorf("GOT: %v; WANT: %v", got, want)
+		for scanner.Scan() {
+			dirent, err := scanner.Dirent()
+			ensureError(t, err)
+			actual = append(actual, dirent)
 		}
-	}
-
-	ensureError(t, scanner.Err())
-
-	if got, want := found, true; got != want {
-		t.Errorf("GOT: %v; WANT: %v", got, want)
-	}
-}
-
-func TestScanDir(t *testing.T) {
-	t.Run("dirents", func(t *testing.T) {
-		actual, err := ReadDirents(filepath.Join(testRoot, "d0"), nil)
-
-		ensureError(t, err)
+		ensureError(t, scanner.Err())
 
 		expected := Dirents{
 			&Dirent{
 				name:     maxName,
+				path:     testroot,
 				modeType: os.FileMode(0),
 			},
 			&Dirent{
 				name:     "d1",
+				path:     testroot,
 				modeType: os.ModeDir,
 			},
 			&Dirent{
 				name:     "f1",
+				path:     testroot,
 				modeType: os.FileMode(0),
 			},
 			&Dirent{
 				name:     "skips",
+				path:     testroot,
 				modeType: os.ModeDir,
 			},
 			&Dirent{
 				name:     "symlinks",
+				path:     testroot,
 				modeType: os.ModeDir,
 			},
 		}
@@ -68,10 +68,33 @@ func TestScanDir(t *testing.T) {
 		ensureDirentsMatch(t, actual, expected)
 	})
 
-	t.Run("dirnames", func(t *testing.T) {
-		actual, err := ReadDirnames(filepath.Join(testRoot, "d0"), nil)
+	t.Run("symlink to directory", func(t *testing.T) {
+		scanner, err := NewScanner(filepath.Join(scaffolingRoot, "d0/symlinks"))
 		ensureError(t, err)
-		expected := []string{maxName, "d1", "f1", "skips", "symlinks"}
-		ensureStringSlicesMatch(t, actual, expected)
+
+		var found bool
+
+		for scanner.Scan() {
+			if scanner.Name() != "toD1" {
+				continue
+			}
+			found = true
+
+			de, err := scanner.Dirent()
+			ensureError(t, err)
+
+			got, err := de.IsDirOrSymlinkToDir()
+			ensureError(t, err)
+
+			if want := true; got != want {
+				t.Errorf("GOT: %v; WANT: %v", got, want)
+			}
+		}
+
+		ensureError(t, scanner.Err())
+
+		if got, want := found, true; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
 	})
 }

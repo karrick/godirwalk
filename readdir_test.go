@@ -7,59 +7,69 @@ import (
 )
 
 func TestReadDirents(t *testing.T) {
-	actual, err := ReadDirents(filepath.Join(testRoot, "d0"), nil)
+	t.Run("without symlinks", func(t *testing.T) {
+		testroot := filepath.Join(scaffolingRoot, "d0")
 
-	ensureError(t, err)
+		actual, err := ReadDirents(testroot, nil)
+		ensureError(t, err)
 
-	expected := Dirents{
-		&Dirent{
-			name:     maxName,
-			modeType: os.FileMode(0),
-		},
-		&Dirent{
-			name:     "d1",
-			modeType: os.ModeDir,
-		},
-		&Dirent{
-			name:     "f1",
-			modeType: os.FileMode(0),
-		},
-		&Dirent{
-			name:     "skips",
-			modeType: os.ModeDir,
-		},
-		&Dirent{
-			name:     "symlinks",
-			modeType: os.ModeDir,
-		},
-	}
-
-	ensureDirentsMatch(t, actual, expected)
-}
-
-func TestReadDirentsSymlinks(t *testing.T) {
-	osDirname := filepath.Join(testRoot, "d0/symlinks")
-
-	actual, err := ReadDirents(osDirname, nil)
-
-	ensureError(t, err)
-
-	// Because some platforms set multiple mode type bits, when we create the
-	// expected slice, we need to ensure the mode types are set appropriately.
-	var expected Dirents
-	for _, pathname := range []string{"nothing", "toAbs", "toD1", "toF1", "d4"} {
-		info, err := os.Lstat(filepath.Join(osDirname, pathname))
-		if err != nil {
-			t.Fatal(err)
+		expected := Dirents{
+			&Dirent{
+				name:     maxName,
+				path:     testroot,
+				modeType: os.FileMode(0),
+			},
+			&Dirent{
+				name:     "d1",
+				path:     testroot,
+				modeType: os.ModeDir,
+			},
+			&Dirent{
+				name:     "f1",
+				path:     testroot,
+				modeType: os.FileMode(0),
+			},
+			&Dirent{
+				name:     "skips",
+				path:     testroot,
+				modeType: os.ModeDir,
+			},
+			&Dirent{
+				name:     "symlinks",
+				path:     testroot,
+				modeType: os.ModeDir,
+			},
 		}
-		expected = append(expected, &Dirent{name: pathname, modeType: info.Mode() & os.ModeType})
-	}
 
-	ensureDirentsMatch(t, actual, expected)
+		ensureDirentsMatch(t, actual, expected)
+	})
+
+	t.Run("with symlinks", func(t *testing.T) {
+		testroot := filepath.Join(scaffolingRoot, "d0/symlinks")
+
+		actual, err := ReadDirents(testroot, nil)
+		ensureError(t, err)
+
+		// Because some platforms set multiple mode type bits, when we create
+		// the expected slice, we need to ensure the mode types are set
+		// appropriately for this platform. We have another test function to
+		// ensure NewDirent does this correctly, so let's call NewDirent for
+		// each of the expected children entries.
+		var expected Dirents
+		for _, child := range []string{"nothing", "toAbs", "toD1", "toF1", "d4"} {
+			de, err := NewDirent(filepath.Join(testroot, child))
+			if err != nil {
+				t.Fatal(err)
+			}
+			expected = append(expected, de)
+		}
+
+		ensureDirentsMatch(t, actual, expected)
+	})
 }
 
 func TestReadDirnames(t *testing.T) {
-	actual, err := ReadDirnames(filepath.Join(testRoot, "d0"), nil)
+	actual, err := ReadDirnames(filepath.Join(scaffolingRoot, "d0"), nil)
 	ensureError(t, err)
 	expected := []string{maxName, "d1", "f1", "skips", "symlinks"}
 	ensureStringSlicesMatch(t, actual, expected)
@@ -90,7 +100,7 @@ func BenchmarkReadDirnamesStandardLibrary(b *testing.B) {
 	_ = count
 }
 
-func BenchmarkReadDirnamesThisLibrary(b *testing.B) {
+func BenchmarkReadDirnamesGodirwalk(b *testing.B) {
 	if testing.Short() {
 		b.Skip("Skipping benchmark using user's Go source directory")
 	}

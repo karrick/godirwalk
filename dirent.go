@@ -31,18 +31,6 @@ func NewDirent(osPathname string) (*Dirent, error) {
 	}, nil
 }
 
-// Name returns the base name of the file system entry.
-func (de Dirent) Name() string { return de.name }
-
-// ModeType returns the mode bits that specify the file system node type.  We
-// could make our own enum-like data type for encoding the file type, but Go's
-// runtime already gives us architecture independent file modes, as discussed in
-// `os/types.go`:
-//
-//    Go's runtime FileMode type has same definition on all systems, so that
-//    information about files can be moved from one system to another portably.
-func (de Dirent) ModeType() os.FileMode { return de.modeType }
-
 // IsDir returns true if and only if the Dirent represents a file system
 // directory.  Note that on some operating systems, more than one file mode bit
 // may be set for a node.  For instance, on Windows, a symbolic link that points
@@ -81,6 +69,18 @@ func (de Dirent) IsSymlink() bool { return de.modeType&os.ModeSymlink != 0 }
 
 // IsDevice returns true if and only if the Dirent represents a device file.
 func (de Dirent) IsDevice() bool { return de.modeType&os.ModeDevice != 0 }
+
+// ModeType returns the mode bits that specify the file system node type.  We
+// could make our own enum-like data type for encoding the file type, but Go's
+// runtime already gives us architecture independent file modes, as discussed in
+// `os/types.go`:
+//
+//    Go's runtime FileMode type has same definition on all systems, so that
+//    information about files can be moved from one system to another portably.
+func (de Dirent) ModeType() os.FileMode { return de.modeType }
+
+// Name returns the base name of the file system entry.
+func (de Dirent) Name() string { return de.name }
 
 // reset releases memory held by entry err and name, and resets mode type to 0.
 func (de *Dirent) reset() {

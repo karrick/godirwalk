@@ -16,8 +16,8 @@ import (
 // is 255 characters long.
 const maxName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
-// testRoot is the temporary directory root for scaffold directory.
-var testRoot string
+// scaffolingRoot is the temporary directory root for scaffold directory.
+var scaffolingRoot string
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -57,7 +57,7 @@ func TestMain(m *testing.M) {
 func setup() error {
 	var err error
 
-	testRoot, err = ioutil.TempDir(os.TempDir(), "godirwalk-")
+	scaffolingRoot, err = ioutil.TempDir(os.TempDir(), "godirwalk-")
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func setup() error {
 		}
 	}
 
-	oldname, err := filepath.Abs(filepath.Join(testRoot, "d0/f1"))
+	oldname, err := filepath.Abs(filepath.Join(scaffolingRoot, "d0/f1"))
 	if err != nil {
 		return fmt.Errorf("cannot create scaffolding entry: %s", err)
 	}
@@ -95,7 +95,7 @@ func setup() error {
 		return fmt.Errorf("cannot create scaffolding entry: %s", err)
 	}
 
-	if err := os.Remove(filepath.Join(testRoot, "d0/f0")); err != nil {
+	if err := os.Remove(filepath.Join(scaffolingRoot, "d0/f0")); err != nil {
 		return fmt.Errorf("cannot remove file from test scaffolding: %s", err)
 	}
 
@@ -103,18 +103,18 @@ func setup() error {
 }
 
 func teardown() error {
-	if testRoot == "" {
+	if scaffolingRoot == "" {
 		return nil // if we do not even have a test root directory then exit
 	}
-	if err := os.RemoveAll(testRoot); err != nil {
+	if err := os.RemoveAll(scaffolingRoot); err != nil {
 		return err
 	}
 	return nil
 }
 
 func dumpDirectory() {
-	trim := len(testRoot) // trim rootDir from prefix of strings
-	err := filepath.Walk(testRoot, func(osPathname string, info os.FileInfo, err error) error {
+	trim := len(scaffolingRoot) // trim rootDir from prefix of strings
+	err := filepath.Walk(scaffolingRoot, func(osPathname string, info os.FileInfo, err error) error {
 		if err != nil {
 			// we have no info, so get it
 			info, err2 := os.Lstat(osPathname)
@@ -157,7 +157,7 @@ type file struct {
 }
 
 func (f file) Create() error {
-	newname := filepath.Join(testRoot, filepath.FromSlash(f.name))
+	newname := filepath.Join(scaffolingRoot, filepath.FromSlash(f.name))
 	if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
 		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 	}
@@ -172,7 +172,7 @@ type link struct {
 }
 
 func (s link) Create() error {
-	newname := filepath.Join(testRoot, filepath.FromSlash(s.name))
+	newname := filepath.Join(scaffolingRoot, filepath.FromSlash(s.name))
 	if err := os.MkdirAll(filepath.Dir(newname), os.ModePerm); err != nil {
 		return fmt.Errorf("cannot create directory for test scaffolding: %s", err)
 	}
