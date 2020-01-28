@@ -2,9 +2,9 @@
 
 package godirwalk
 
-func readDirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
+func readDirents(osDirname string, _ []byte) (Dirents, error) {
 	var entries Dirents
-	scanner, err := NewScannerWithScratchBuffer(osDirname, scratchBuffer)
+	scanner, err := NewScanner(osDirname)
 	if err != nil {
 		return nil, err
 	}
@@ -19,9 +19,9 @@ func readDirents(osDirname string, scratchBuffer []byte) (Dirents, error) {
 	return entries, nil
 }
 
-func readDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
+func readDirnames(osDirname string, _ []byte) ([]string, error) {
 	var entries []string
-	scanner, err := NewScannerWithScratchBuffer(osDirname, scratchBuffer)
+	scanner, err := NewScanner(osDirname)
 	if err != nil {
 		return nil, err
 	}
