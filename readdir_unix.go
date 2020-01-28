@@ -51,7 +51,10 @@ getNextEntry:
 	nameLength := len(nameSlice)
 
 	if nameLength == 0 || (nameSlice[0] == '.' && (nameLength == 1 || (nameLength == 2 && nameSlice[1] == '.'))) {
-		goto getNextEntry
+		if len(workBuffer) > 0 {
+			goto getNextEntry
+		}
+		goto reloadWorkBuffer
 	}
 
 	childName := string(nameSlice)
