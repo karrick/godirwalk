@@ -11,7 +11,7 @@ func TestDirent(t *testing.T) {
 	// scaffolding to create a device.
 
 	t.Run("file", func(t *testing.T) {
-		de, err := NewDirent(filepath.Join(testRoot, "d0", "f1"))
+		de, err := NewDirent(filepath.Join(scaffolingRoot, "d0", "f1"))
 		ensureError(t, err)
 
 		if got, want := de.Name(), "f1"; got != want {
@@ -43,7 +43,7 @@ func TestDirent(t *testing.T) {
 	})
 
 	t.Run("directory", func(t *testing.T) {
-		de, err := NewDirent(filepath.Join(testRoot, "d0"))
+		de, err := NewDirent(filepath.Join(scaffolingRoot, "d0"))
 		ensureError(t, err)
 
 		if got, want := de.Name(), "d0"; got != want {
@@ -76,7 +76,7 @@ func TestDirent(t *testing.T) {
 
 	t.Run("symlink", func(t *testing.T) {
 		t.Run("to file", func(t *testing.T) {
-			de, err := NewDirent(filepath.Join(testRoot, "d0", "symlinks", "toF1"))
+			de, err := NewDirent(filepath.Join(scaffolingRoot, "d0", "symlinks", "toF1"))
 			ensureError(t, err)
 
 			if got, want := de.Name(), "toF1"; got != want {
@@ -108,7 +108,7 @@ func TestDirent(t *testing.T) {
 		})
 
 		t.Run("to directory", func(t *testing.T) {
-			de, err := NewDirent(filepath.Join(testRoot, "d0", "symlinks", "toD1"))
+			de, err := NewDirent(filepath.Join(scaffolingRoot, "d0", "symlinks", "toD1"))
 			ensureError(t, err)
 
 			if got, want := de.Name(), "toD1"; got != want {

@@ -61,7 +61,7 @@ func godirwalkWalkUnsorted(tb testing.TB, osDirname string) []string {
 // those returned by filepath.Walk
 func ensureSameAsStandardLibrary(tb testing.TB, osDirname string) {
 	tb.Helper()
-	osDirname = filepath.Join(testRoot, osDirname)
+	osDirname = filepath.Join(scaffolingRoot, osDirname)
 	actual := godirwalkWalk(tb, osDirname)
 	sort.Strings(actual)
 	expected := filepathWalk(tb, osDirname)
@@ -85,7 +85,7 @@ func TestWalkCompatibleWithFilepathWalk(t *testing.T) {
 		// want to ensure godirwalk can optimize traversals when unsorted using
 		// the Scanner, but recognize that we cannot test against standard
 		// library when we skip any nodes within it.
-		osDirname := filepath.Join(testRoot, "d0/d1")
+		osDirname := filepath.Join(scaffolingRoot, "d0/d1")
 		actual := godirwalkWalkUnsorted(t, osDirname)
 		sort.Strings(actual)
 		expected := filepathWalk(t, osDirname)
@@ -110,7 +110,7 @@ func TestWalkSkipDir(t *testing.T) {
 
 	t.Run("SkipDirOnSymlink", func(t *testing.T) {
 		var actual []string
-		err := Walk(filepath.Join(testRoot, "d0/skips"), &Options{
+		err := Walk(filepath.Join(scaffolingRoot, "d0/skips"), &Options{
 			Callback: func(osPathname string, dirent *Dirent) error {
 				if dirent.Name() == "skip" {
 					return filepath.SkipDir
@@ -124,12 +124,12 @@ func TestWalkSkipDir(t *testing.T) {
 		ensureError(t, err)
 
 		expected := []string{
-			filepath.Join(testRoot, "d0/skips"),
-			filepath.Join(testRoot, "d0/skips/d2"),
-			filepath.Join(testRoot, "d0/skips/d2/f3"),
-			filepath.Join(testRoot, "d0/skips/d3"),
-			filepath.Join(testRoot, "d0/skips/d3/f4"),
-			filepath.Join(testRoot, "d0/skips/d3/z2"),
+			filepath.Join(scaffolingRoot, "d0/skips"),
+			filepath.Join(scaffolingRoot, "d0/skips/d2"),
+			filepath.Join(scaffolingRoot, "d0/skips/d2/f3"),
+			filepath.Join(scaffolingRoot, "d0/skips/d3"),
+			filepath.Join(scaffolingRoot, "d0/skips/d3/f4"),
+			filepath.Join(scaffolingRoot, "d0/skips/d3/z2"),
 		}
 
 		ensureStringSlicesMatch(t, actual, expected)
@@ -140,7 +140,7 @@ func TestWalkFollowSymbolicLinks(t *testing.T) {
 	var actual []string
 	var errorCallbackVisited bool
 
-	err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
+	err := Walk(filepath.Join(scaffolingRoot, "d0/symlinks"), &Options{
 		Callback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, filepath.FromSlash(osPathname))
 			return nil
@@ -162,16 +162,16 @@ func TestWalkFollowSymbolicLinks(t *testing.T) {
 	}
 
 	expected := []string{
-		filepath.Join(testRoot, "d0/symlinks"),
-		filepath.Join(testRoot, "d0/symlinks/d4"),
-		filepath.Join(testRoot, "d0/symlinks/d4/toSD1"),    // chained symbolic link
-		filepath.Join(testRoot, "d0/symlinks/d4/toSD1/f2"), // chained symbolic link
-		filepath.Join(testRoot, "d0/symlinks/d4/toSF1"),    // chained symbolic link
-		filepath.Join(testRoot, "d0/symlinks/nothing"),
-		filepath.Join(testRoot, "d0/symlinks/toAbs"),
-		filepath.Join(testRoot, "d0/symlinks/toD1"),
-		filepath.Join(testRoot, "d0/symlinks/toD1/f2"),
-		filepath.Join(testRoot, "d0/symlinks/toF1"),
+		filepath.Join(scaffolingRoot, "d0/symlinks"),
+		filepath.Join(scaffolingRoot, "d0/symlinks/d4"),
+		filepath.Join(scaffolingRoot, "d0/symlinks/d4/toSD1"),    // chained symbolic link
+		filepath.Join(scaffolingRoot, "d0/symlinks/d4/toSD1/f2"), // chained symbolic link
+		filepath.Join(scaffolingRoot, "d0/symlinks/d4/toSF1"),    // chained symbolic link
+		filepath.Join(scaffolingRoot, "d0/symlinks/nothing"),
+		filepath.Join(scaffolingRoot, "d0/symlinks/toAbs"),
+		filepath.Join(scaffolingRoot, "d0/symlinks/toD1"),
+		filepath.Join(scaffolingRoot, "d0/symlinks/toD1/f2"),
+		filepath.Join(scaffolingRoot, "d0/symlinks/toF1"),
 	}
 
 	ensureStringSlicesMatch(t, actual, expected)
@@ -184,7 +184,7 @@ func TestErrorCallback(t *testing.T) {
 	t.Run("halt", func(t *testing.T) {
 		var callbackVisited, errorCallbackVisited bool
 
-		err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
+		err := Walk(filepath.Join(scaffolingRoot, "d0/symlinks"), &Options{
 			Callback: func(osPathname string, dirent *Dirent) error {
 				switch dirent.Name() {
 				case "nothing":
@@ -216,7 +216,7 @@ func TestErrorCallback(t *testing.T) {
 	t.Run("skipnode", func(t *testing.T) {
 		var callbackVisited, errorCallbackVisited bool
 
-		err := Walk(filepath.Join(testRoot, "d0/symlinks"), &Options{
+		err := Walk(filepath.Join(scaffolingRoot, "d0/symlinks"), &Options{
 			Callback: func(osPathname string, dirent *Dirent) error {
 				switch dirent.Name() {
 				case "nothing":
@@ -250,7 +250,7 @@ func TestErrorCallback(t *testing.T) {
 func TestPostChildrenCallback(t *testing.T) {
 	var actual []string
 
-	err := Walk(filepath.Join(testRoot, "d0"), &Options{
+	err := Walk(filepath.Join(scaffolingRoot, "d0"), &Options{
 		Callback: func(_ string, _ *Dirent) error { return nil },
 		PostChildrenCallback: func(osPathname string, _ *Dirent) error {
 			actual = append(actual, osPathname)
@@ -261,14 +261,14 @@ func TestPostChildrenCallback(t *testing.T) {
 	ensureError(t, err)
 
 	expected := []string{
-		filepath.Join(testRoot, "d0"),
-		filepath.Join(testRoot, "d0/d1"),
-		filepath.Join(testRoot, "d0/skips"),
-		filepath.Join(testRoot, "d0/skips/d2"),
-		filepath.Join(testRoot, "d0/skips/d3"),
-		filepath.Join(testRoot, "d0/skips/d3/skip"),
-		filepath.Join(testRoot, "d0/symlinks"),
-		filepath.Join(testRoot, "d0/symlinks/d4"),
+		filepath.Join(scaffolingRoot, "d0"),
+		filepath.Join(scaffolingRoot, "d0/d1"),
+		filepath.Join(scaffolingRoot, "d0/skips"),
+		filepath.Join(scaffolingRoot, "d0/skips/d2"),
+		filepath.Join(scaffolingRoot, "d0/skips/d3"),
+		filepath.Join(scaffolingRoot, "d0/skips/d3/skip"),
+		filepath.Join(scaffolingRoot, "d0/symlinks"),
+		filepath.Join(scaffolingRoot, "d0/symlinks/d4"),
 	}
 
 	ensureStringSlicesMatch(t, actual, expected)

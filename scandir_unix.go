@@ -52,6 +52,10 @@ func NewScanner(osDirname string) (*Scanner, error) {
 	return NewScannerWithScratchBuffer(osDirname, nil)
 }
 
+// NewScannerWithScratchBuffer returns a new directory Scanner that lazily
+// enumerates the contents of a single directory. On platforms other than
+// Windows it ues the provided scratch buffer to read from the file system. On
+// Windows the scratch buffer is ignored.
 func NewScannerWithScratchBuffer(osDirname string, scratchBuffer []byte) (*Scanner, error) {
 	dh, err := os.Open(osDirname)
 	if err != nil {
