@@ -7,12 +7,6 @@ import (
 	"path/filepath"
 )
 
-// DefaultScratchBuffer is a deprecated config parameter, whose usage was
-// obsoleted by the introduction of the Scanner struct, and migrating
-// ReadDirents, ReadDirnames, and Walk to use Scanner for enumerating directory
-// contents.
-const DefaultScratchBufferSize = 0
-
 // Options provide parameters for how the Walk function operates.
 type Options struct {
 	// ErrorCallback specifies a function to be invoked in the case of an error
@@ -67,9 +61,12 @@ type Options struct {
 	// processed.
 	PostChildrenCallback WalkFunc
 
-	// ScratchBuffer is a deprecated config parameter, whose usage was obsoleted
-	// by the introduction of the Scanner struct, and migrating ReadDirents,
-	// ReadDirnames, and Walk to use Scanner for enumerating directory contents.
+	// ScratchBuffer is an optional byte slice to use as a scratch buffer for
+	// Walk to use when reading directory entries, to reduce amount of garbage
+	// generation. Not all architectures take advantage of the scratch
+	// buffer. If omitted or the provided buffer has fewer bytes than
+	// MinimumScratchBufferSize, then a buffer with MinimumScratchBufferSize
+	// bytes will be created and used once per Walk invocation.
 	ScratchBuffer []byte
 
 	// AllowNonDirectory causes Walk to bypass the check that ensures it is
@@ -193,6 +190,10 @@ func Walk(pathname string, options *Options) error {
 		modeType: mode & os.ModeType,
 	}
 
+	if len(options.ScratchBuffer) < MinimumScratchBufferSize {
+		options.ScratchBuffer = newScratchBuffer()
+	}
+
 	// If ErrorCallback is nil, set to a default value that halts the walk
 	// process on all operating system errors. This is done to allow error
 	// handling to be more succinct in the walk code.
@@ -257,7 +258,7 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		// When upstream wants a sorted iteration, we must read the entire
 		// directory and sort through the child names, and then iterate on each
 		// child.
-		ds, err = newSortedScanner(osPathname)
+		ds, err = newSortedScanner(osPathname, options.ScratchBuffer)
 	}
 	if err != nil {
 		if action := options.ErrorCallback(osPathname, err); action == SkipNode {

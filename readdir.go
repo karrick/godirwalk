@@ -1,13 +1,5 @@
 package godirwalk
 
-import "os"
-
-// MinimumScratchBufferSize specifies the minimum size of the scratch buffer
-// that Walk, ReadDirents, ReadDirnames, and Scanner will use when reading file
-// entries from the operating system. It is initialized to the result from
-// calling `os.Getpagesize()` during program startup.
-var MinimumScratchBufferSize = os.Getpagesize()
-
 // ReadDirents returns a sortable slice of pointers to Dirent structures, each
 // representing the file system name and mode type for one of the immediate
 // descendant of the specified directory. If the specified directory is a
