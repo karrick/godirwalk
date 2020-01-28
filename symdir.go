@@ -9,7 +9,8 @@ func isDirectoryOrSymlinkToDirectory(de *Dirent, osPathname string) (bool, error
 	if !de.IsSymlink() {
 		return false, nil
 	}
-	info, err := os.Stat(osPathname) // get information for referent
+	// Does this symlink point to a directory?
+	info, err := os.Stat(osPathname)
 	if err != nil {
 		return false, err
 	}
