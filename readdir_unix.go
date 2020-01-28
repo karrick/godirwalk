@@ -8,6 +8,15 @@ import (
 	"unsafe"
 )
 
+// MinimumScratchBufferSize specifies the minimum size of the scratch buffer
+// that ReadDirents, ReadDirnames, Scanner, and Walk will use when reading file
+// entries from the operating system. During program startup it is initialized
+// to the result from calling `os.Getpagesize()` for non Windows environments,
+// and 0 for Windows.
+var MinimumScratchBufferSize = os.Getpagesize()
+
+func newScratchBuffer() []byte { return make([]byte, MinimumScratchBufferSize) }
+
 func readDirents(osDirname string, scratchBuffer []byte) ([]*Dirent, error) {
 	var entries []*Dirent
 	var workBuffer []byte
@@ -19,7 +28,7 @@ func readDirents(osDirname string, scratchBuffer []byte) ([]*Dirent, error) {
 	fd := int(dh.Fd())
 
 	if len(scratchBuffer) < MinimumScratchBufferSize {
-		scratchBuffer = make([]byte, MinimumScratchBufferSize)
+		scratchBuffer = newScratchBuffer()
 	}
 
 	for {
@@ -75,7 +84,7 @@ func readDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
 	fd := int(dh.Fd())
 
 	if len(scratchBuffer) < MinimumScratchBufferSize {
-		scratchBuffer = make([]byte, MinimumScratchBufferSize)
+		scratchBuffer = newScratchBuffer()
 	}
 
 	for {

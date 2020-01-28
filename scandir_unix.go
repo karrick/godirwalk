@@ -62,7 +62,7 @@ func NewScannerWithScratchBuffer(osDirname string, scratchBuffer []byte) (*Scann
 		return nil, err
 	}
 	if len(scratchBuffer) < MinimumScratchBufferSize {
-		scratchBuffer = make([]byte, MinimumScratchBufferSize)
+		scratchBuffer = newScratchBuffer()
 	}
 	scanner := &Scanner{
 		scratchBuffer: scratchBuffer,

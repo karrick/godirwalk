@@ -2,6 +2,15 @@
 
 package godirwalk
 
+// MinimumScratchBufferSize specifies the minimum size of the scratch buffer
+// that ReadDirents, ReadDirnames, Scanner, and Walk will use when reading file
+// entries from the operating system. During program startup it is initialized
+// to the result from calling `os.Getpagesize()` for non Windows environments,
+// and 0 for Windows.
+var MinimumScratchBufferSize = 0
+
+func newScratchBuffer() []byte { return nil }
+
 func readDirents(osDirname string, _ []byte) (Dirents, error) {
 	var entries Dirents
 	scanner, err := NewScanner(osDirname)
