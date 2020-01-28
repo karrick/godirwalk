@@ -189,6 +189,7 @@ func Walk(pathname string, options *Options) error {
 
 	dirent := &Dirent{
 		name:     filepath.Base(pathname),
+		path:     filepath.Dir(pathname),
 		modeType: mode & os.ModeType,
 	}
 
@@ -286,7 +287,7 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		// directory, stop processing that directory but continue processing
 		// siblings.  When received on a non-directory, stop processing
 		// remaining siblings.
-		isDir, err := isDirectoryOrSymlinkToDirectory(deChild, osChildname)
+		isDir, err := deChild.IsDirOrSymlinkToDir()
 		if err != nil {
 			if action := options.ErrorCallback(osChildname, err); action == SkipNode {
 				continue // ignore and continue with next sibling
