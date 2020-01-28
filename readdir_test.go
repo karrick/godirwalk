@@ -90,7 +90,7 @@ func BenchmarkReadDirnamesStandardLibrary(b *testing.B) {
 	_ = count
 }
 
-func BenchmarkReadDirnamesThisLibrary(b *testing.B) {
+func BenchmarkReadDirnamesGodirwalk(b *testing.B) {
 	if testing.Short() {
 		b.Skip("Skipping benchmark using user's Go source directory")
 	}

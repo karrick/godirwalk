@@ -278,7 +278,7 @@ const flameIterations = 10
 
 var goPrefix = filepath.Join(os.Getenv("GOPATH"), "src")
 
-func BenchmarkFilepathWalk(b *testing.B) {
+func BenchmarkFilepath(b *testing.B) {
 	if testing.Short() {
 		b.Skip("Skipping benchmark using user's Go source directory")
 	}
@@ -305,7 +305,7 @@ func BenchmarkGodirwalkUnsorted(b *testing.B) {
 	}
 }
 
-func BenchmarkFlameGraphFilepathWalk(b *testing.B) {
+func BenchmarkFlameGraphFilepath(b *testing.B) {
 	for i := 0; i < flameIterations; i++ {
 		_ = filepathWalk(b, goPrefix)
 	}
