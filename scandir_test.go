@@ -6,6 +6,36 @@ import (
 	"testing"
 )
 
+func TestScannerDirent(t *testing.T) {
+	scanner, err := NewScanner(filepath.Join(testRoot, "d0/symlinks"))
+	ensureError(t, err)
+
+	var found bool
+
+	for scanner.Scan() {
+		if scanner.Name() != "toD1" {
+			continue
+		}
+		found = true
+
+		de, err := scanner.Dirent()
+		ensureError(t, err)
+
+		got, err := de.IsDirOrSymlinkToDir()
+		ensureError(t, err)
+
+		if want := true; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+	}
+
+	ensureError(t, scanner.Err())
+
+	if got, want := found, true; got != want {
+		t.Errorf("GOT: %v; WANT: %v", got, want)
+	}
+}
+
 func TestScanDir(t *testing.T) {
 	t.Run("dirents", func(t *testing.T) {
 		actual, err := ReadDirents(filepath.Join(testRoot, "d0"), nil)

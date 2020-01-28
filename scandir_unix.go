@@ -72,7 +72,7 @@ func NewScanner(osDirname string) (*Scanner, error) {
 // Dirent returns the current directory entry while scanning a directory.
 func (s *Scanner) Dirent() (*Dirent, error) {
 	if s.de == nil {
-		s.de = &Dirent{name: s.childName}
+		s.de = &Dirent{name: s.childName, path: s.osDirname}
 		s.de.modeType, s.statErr = modeTypeFromDirent(s.sde, s.osDirname, s.childName)
 	}
 	return s.de, s.statErr
