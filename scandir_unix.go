@@ -131,6 +131,9 @@ func (s *Scanner) Scan() bool {
 			n, err := syscall.ReadDirent(s.fd, s.scratchBuffer)
 			// n, err := unix.ReadDirent(s.fd, s.scratchBuffer)
 			if err != nil {
+				if err == syscall.EINTR /* || err == unix.EINTR */ {
+					continue
+				}
 				s.done(err)
 				return false
 			}
