@@ -36,6 +36,9 @@ func readDirents(osDirname string, scratchBuffer []byte) ([]*Dirent, error) {
 			n, err := syscall.ReadDirent(fd, scratchBuffer)
 			// n, err := unix.ReadDirent(fd, scratchBuffer)
 			if err != nil {
+				if err == syscall.EINTR /* || err == unix.EINTR */ {
+					continue
+				}
 				_ = dh.Close()
 				return nil, err
 			}
@@ -92,6 +95,9 @@ func readDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
 			n, err := syscall.ReadDirent(fd, scratchBuffer)
 			// n, err := unix.ReadDirent(fd, scratchBuffer)
 			if err != nil {
+				if err == syscall.EINTR /* || err == unix.EINTR */ {
+					continue
+				}
 				_ = dh.Close()
 				return nil, err
 			}
@@ -104,9 +110,9 @@ func readDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
 			workBuffer = scratchBuffer[:n] // trim work buffer to number of bytes read
 		}
 
-		// Handle first entry in the work buffer.
 		sde = (*syscall.Dirent)(unsafe.Pointer(&workBuffer[0])) // point entry to first syscall.Dirent in buffer
-		workBuffer = workBuffer[reclen(sde):]                   // advance buffer for next iteration through loop
+		// Handle first entry in the work buffer.
+		workBuffer = workBuffer[reclen(sde):] // advance buffer for next iteration through loop
 
 		if inoFromDirent(sde) == 0 {
 			continue // inode set to 0 indicates an entry that was marked as deleted
