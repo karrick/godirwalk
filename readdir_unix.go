@@ -31,6 +31,7 @@ func readDirents(osDirname string, scratchBuffer []byte) ([]*Dirent, error) {
 		scratchBuffer = newScratchBuffer()
 	}
 
+	var sde syscall.Dirent
 	for {
 		if len(workBuffer) == 0 {
 			n, err := syscall.ReadDirent(fd, scratchBuffer)
@@ -51,14 +52,14 @@ func readDirents(osDirname string, scratchBuffer []byte) ([]*Dirent, error) {
 			workBuffer = scratchBuffer[:n] // trim work buffer to number of bytes read
 		}
 
-		sde := (*syscall.Dirent)(unsafe.Pointer(&workBuffer[0])) // point entry to first syscall.Dirent in buffer
-		workBuffer = workBuffer[reclen(sde):]                    // advance buffer for next iteration through loop
+		copy((*[unsafe.Sizeof(syscall.Dirent{})]byte)(unsafe.Pointer(&sde))[:], workBuffer)
+		workBuffer = workBuffer[reclen(&sde):] // advance buffer for next iteration through loop
 
-		if inoFromDirent(sde) == 0 {
+		if inoFromDirent(&sde) == 0 {
 			continue // inode set to 0 indicates an entry that was marked as deleted
 		}
 
-		nameSlice := nameFromDirent(sde)
+		nameSlice := nameFromDirent(&sde)
 		nameLength := len(nameSlice)
 
 		if nameLength == 0 || (nameSlice[0] == '.' && (nameLength == 1 || (nameLength == 2 && nameSlice[1] == '.'))) {
@@ -66,7 +67,7 @@ func readDirents(osDirname string, scratchBuffer []byte) ([]*Dirent, error) {
 		}
 
 		childName := string(nameSlice)
-		mt, err := modeTypeFromDirent(sde, osDirname, childName)
+		mt, err := modeTypeFromDirent(&sde, osDirname, childName)
 		if err != nil {
 			_ = dh.Close()
 			return nil, err
