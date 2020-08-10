@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/karrick/godirwalk"
 	"github.com/karrick/golf"
@@ -19,8 +20,9 @@ import (
 var NoColor = os.Getenv("TERM") == "dumb" || !(isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()))
 
 func main() {
-	optRegex := golf.String("regex", "", "Do not print unless full path matches regex.")
 	optQuiet := golf.Bool("quiet", false, "Do not print intermediate errors to stderr.")
+	optRegex := golf.String("regex", "", "Do not print unless full path matches regex.")
+	optSkip := golf.String("skip", "", "Skip and do not descend into entries with this substring in the pathname")
 	golf.Parse()
 
 	programName, err := os.Executable()
@@ -54,12 +56,18 @@ func main() {
 	case nameRE == nil:
 		// When no name pattern provided, print everything.
 		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
+			if *optSkip != "" && strings.Contains(osPathname, ".git") {
+				return filepath.SkipDir
+			}
 			_, err := fmt.Println(osPathname)
 			return err
 		}
 	case NoColor:
 		// Name pattern was provided, but color not permitted.
 		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
+			if *optSkip != "" && strings.Contains(osPathname, ".git") {
+				return filepath.SkipDir
+			}
 			var err error
 			if nameRE.FindString(osPathname) != "" {
 				_, err = fmt.Println(osPathname)
@@ -71,6 +79,9 @@ func main() {
 		buf = append(buf, "\033[22m"...) // very first print should set normal intensity
 
 		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
+			if *optSkip != "" && strings.Contains(osPathname, ".git") {
+				return filepath.SkipDir
+			}
 			matches := nameRE.FindAllStringSubmatchIndex(osPathname, -1)
 			if len(matches) == 0 {
 				return nil // entry does not match pattern
