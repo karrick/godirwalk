@@ -56,7 +56,7 @@ func main() {
 	case nameRE == nil:
 		// When no name pattern provided, print everything.
 		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
-			if *optSkip != "" && strings.Contains(osPathname, ".git") {
+			if *optSkip != "" && strings.Contains(osPathname, *optSkip) {
 				return filepath.SkipDir
 			}
 			_, err := fmt.Println(osPathname)
@@ -65,7 +65,7 @@ func main() {
 	case NoColor:
 		// Name pattern was provided, but color not permitted.
 		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
-			if *optSkip != "" && strings.Contains(osPathname, ".git") {
+			if *optSkip != "" && strings.Contains(osPathname, *optSkip) {
 				return filepath.SkipDir
 			}
 			var err error
@@ -79,7 +79,7 @@ func main() {
 		buf = append(buf, "\033[22m"...) // very first print should set normal intensity
 
 		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
-			if *optSkip != "" && strings.Contains(osPathname, ".git") {
+			if *optSkip != "" && strings.Contains(osPathname, *optSkip) {
 				return filepath.SkipDir
 			}
 			matches := nameRE.FindAllStringSubmatchIndex(osPathname, -1)
