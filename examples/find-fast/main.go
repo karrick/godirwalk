@@ -55,9 +55,12 @@ func main() {
 	switch {
 	case nameRE == nil:
 		// When no name pattern provided, print everything.
-		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
+		options.Callback = func(osPathname string, de *godirwalk.Dirent) error {
 			if *optSkip != "" && strings.Contains(osPathname, *optSkip) {
-				return filepath.SkipDir
+				if !*optQuiet {
+					fmt.Fprintf(os.Stderr, "%s: %s (skipping)\n", programName, osPathname)
+				}
+				return godirwalk.SkipThis
 			}
 			_, err := fmt.Println(osPathname)
 			return err
@@ -66,7 +69,10 @@ func main() {
 		// Name pattern was provided, but color not permitted.
 		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
 			if *optSkip != "" && strings.Contains(osPathname, *optSkip) {
-				return filepath.SkipDir
+				if !*optQuiet {
+					fmt.Fprintf(os.Stderr, "%s: %s (skipping)\n", programName, osPathname)
+				}
+				return godirwalk.SkipThis
 			}
 			var err error
 			if nameRE.FindString(osPathname) != "" {
@@ -80,7 +86,10 @@ func main() {
 
 		options.Callback = func(osPathname string, _ *godirwalk.Dirent) error {
 			if *optSkip != "" && strings.Contains(osPathname, *optSkip) {
-				return filepath.SkipDir
+				if !*optQuiet {
+					fmt.Fprintf(os.Stderr, "%s: %s (skipping)\n", programName, osPathname)
+				}
+				return godirwalk.SkipThis
 			}
 			matches := nameRE.FindAllStringSubmatchIndex(osPathname, -1)
 			if len(matches) == 0 {

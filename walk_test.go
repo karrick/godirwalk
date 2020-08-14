@@ -136,6 +136,44 @@ func TestWalkSkipDir(t *testing.T) {
 	})
 }
 
+func TestWalkSkipThis(t *testing.T) {
+	t.Run("SkipThis", func(t *testing.T) {
+		var actual []string
+		err := Walk(filepath.Join(scaffolingRoot, "d0"), &Options{
+			Callback: func(osPathname string, dirent *Dirent) error {
+				switch name := dirent.Name(); name {
+				case "skips", "skip", "nothing":
+					return SkipThis
+				}
+				actual = append(actual, filepath.FromSlash(osPathname))
+				return nil
+			},
+			FollowSymbolicLinks: true,
+		})
+
+		ensureError(t, err)
+
+		expected := []string{
+			filepath.Join(scaffolingRoot, "d0"),
+			filepath.Join(scaffolingRoot, "d0/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+			filepath.Join(scaffolingRoot, "d0/f1"),
+			filepath.Join(scaffolingRoot, "d0/d1"),
+			filepath.Join(scaffolingRoot, "d0/d1/f2"),
+			filepath.Join(scaffolingRoot, "d0/symlinks"),
+			filepath.Join(scaffolingRoot, "d0/symlinks/d4"),
+			filepath.Join(scaffolingRoot, "d0/symlinks/d4/toSD1"),
+			filepath.Join(scaffolingRoot, "d0/symlinks/d4/toSD1/f2"),
+			filepath.Join(scaffolingRoot, "d0/symlinks/d4/toSF1"),
+			filepath.Join(scaffolingRoot, "d0/symlinks/toAbs"),
+			filepath.Join(scaffolingRoot, "d0/symlinks/toD1"),
+			filepath.Join(scaffolingRoot, "d0/symlinks/toD1/f2"),
+			filepath.Join(scaffolingRoot, "d0/symlinks/toF1"),
+		}
+
+		ensureStringSlicesMatch(t, actual, expected)
+	})
+}
+
 func TestWalkFollowSymbolicLinks(t *testing.T) {
 	var actual []string
 	var errorCallbackVisited bool
