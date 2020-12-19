@@ -74,6 +74,9 @@ func setup() error {
 		file{"d0/skips/d3/skip/f5"}, // skip is directory: this node should never be visited
 		file{"d0/skips/d3/z2"},      // node follows skip directory: should be visited
 
+		file{"d0/.git/f1"},
+		file{"d0/.git/f2"},
+
 		link{"d0/symlinks/nothing", "../f0"},    // referent will be deleted
 		link{"d0/symlinks/toF1", "../f1"},       //
 		link{"d0/symlinks/toD1", "../d1"},       //

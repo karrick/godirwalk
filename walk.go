@@ -278,12 +278,18 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		}
 		err = walk(osChildname, deChild, options)
 		debug("osChildname: %q; error: %v\n", osChildname, err)
-		if err == nil {
+
+		switch err {
+		case nil:
 			continue
-		}
-		if err != filepath.SkipDir {
+		// case SkipThis:
+		// 	continue
+		case filepath.SkipDir:
+			// no-op
+		default:
 			return err
 		}
+
 		// When received SkipDir on a directory or a symbolic link to a
 		// directory, stop processing that directory but continue processing
 		// siblings.  When received on a non-directory, stop processing

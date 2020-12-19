@@ -1,11 +1,14 @@
 package godirwalk
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"sort"
 	"testing"
 )
+
+var SkipThis = errors.New("skip it")
 
 func filepathWalk(tb testing.TB, osDirname string) []string {
 	tb.Helper()
@@ -243,6 +246,100 @@ func TestErrorCallback(t *testing.T) {
 		if got, want := errorCallbackVisited, true; got != want {
 			t.Errorf("GOT: %v; WANT: %v", got, want)
 		}
+	})
+
+	t.Run("53", func(t *testing.T) {
+
+		// We want to be able to return SkipThis to skip this item and only this
+		// item. If it is a directory, then skip it and children. If it is a
+		// file, then skip only it.
+
+		// t.Run("a", func(t *testing.T) {
+		// 	t.Skip("not done yet")
+
+		// 	var callbackVisited, errorCallbackVisited bool
+
+		// 	err := Walk(filepath.Join(scaffolingRoot, "d0/symlinks"), &Options{
+		// 		Callback: func(osPathname string, dirent *Dirent) error {
+		// 			// switch dirent.Name() {
+		// 			// case "nothing":
+		// 			// 	callbackVisited = true
+		// 			// }
+		// 			if strings.Contains(dirent.Name(), ".git") {
+		// 				return SkipThis
+		// 			}
+		// 			// switch dirent.Name() {
+		// 			// case "nothing":
+		// 			// 	callbackVisited = true
+		// 			// }
+		// 			return nil
+		// 		},
+		// 		ErrorCallback: func(osPathname string, err error) ErrorAction {
+		// 			if err == SkipThis {
+		// 				return SkipNode
+		// 			}
+		// 			// switch filepath.Base(osPathname) {
+		// 			// case "nothing":
+		// 			// 	errorCallbackVisited = true
+		// 			// 	return SkipNode // Direct Walk to ignore this error
+		// 			// }
+		// 			// t.Fatalf("unexpected error callback for %s: %s", osPathname, err)
+		// 			return Halt
+		// 		},
+		// 		FollowSymbolicLinks: true,
+		// 	})
+
+		// 	ensureError(t, err) // Ensure caller receives no access error
+		// 	if got, want := callbackVisited, true; got != want {
+		// 		t.Errorf("GOT: %v; WANT: %v", got, want)
+		// 	}
+		// 	if got, want := errorCallbackVisited, true; got != want {
+		// 		t.Errorf("GOT: %v; WANT: %v", got, want)
+		// 	}
+		// })
+
+		t.Run("b", func(t *testing.T) {
+			var callbackVisited, errorCallbackVisited bool
+
+			err := Walk(filepath.Join(scaffolingRoot, "d0/symlinks"), &Options{
+				Callback: func(osPathname string, dirent *Dirent) error {
+					if dirent.Name() == "nothing" {
+						d, err := dirent.IsDirOrSymlinkToDir()
+						if err != nil {
+							return err
+						}
+						if d {
+							return filepath.SkipDir
+						}
+						return nil
+					}
+					// Do normal processing
+					switch dirent.Name() {
+					case "nothing":
+						callbackVisited = true
+					}
+					return nil
+				},
+				ErrorCallback: func(osPathname string, err error) ErrorAction {
+					switch filepath.Base(osPathname) {
+					case "nothing":
+						errorCallbackVisited = true
+						return SkipNode // Direct Walk to ignore this error
+					}
+					t.Fatalf("unexpected error callback for %s: %s", osPathname, err)
+					return Halt
+				},
+				FollowSymbolicLinks: true,
+			})
+
+			ensureError(t, err) // Ensure caller receives no access error
+			if got, want := callbackVisited, true; got != want {
+				t.Errorf("GOT: %v; WANT: %v", got, want)
+			}
+			if got, want := errorCallbackVisited, true; got != want {
+				t.Errorf("GOT: %v; WANT: %v", got, want)
+			}
+		})
 	})
 }
 
