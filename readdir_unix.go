@@ -79,7 +79,6 @@ func readDirents(osDirname string, scratchBuffer []byte) ([]*Dirent, error) {
 func readDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
 	var entries []string
 	var workBuffer []byte
-	var sde *syscall.Dirent
 
 	dh, err := os.Open(osDirname)
 	if err != nil {
@@ -91,6 +90,7 @@ func readDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
 		scratchBuffer = newScratchBuffer()
 	}
 
+	var sde syscall.Dirent
 	for {
 		if len(workBuffer) == 0 {
 			n, err := syscall.ReadDirent(fd, scratchBuffer)
@@ -111,15 +111,14 @@ func readDirnames(osDirname string, scratchBuffer []byte) ([]string, error) {
 			workBuffer = scratchBuffer[:n] // trim work buffer to number of bytes read
 		}
 
-		sde = (*syscall.Dirent)(unsafe.Pointer(&workBuffer[0])) // point entry to first syscall.Dirent in buffer
-		// Handle first entry in the work buffer.
-		workBuffer = workBuffer[reclen(sde):] // advance buffer for next iteration through loop
+		copy((*[unsafe.Sizeof(syscall.Dirent{})]byte)(unsafe.Pointer(&sde))[:], workBuffer)
+		workBuffer = workBuffer[reclen(&sde):] // advance buffer for next iteration through loop
 
-		if inoFromDirent(sde) == 0 {
+		if inoFromDirent(&sde) == 0 {
 			continue // inode set to 0 indicates an entry that was marked as deleted
 		}
 
-		nameSlice := nameFromDirent(sde)
+		nameSlice := nameFromDirent(&sde)
 		nameLength := len(nameSlice)
 
 		if nameLength == 0 || (nameSlice[0] == '.' && (nameLength == 1 || (nameLength == 2 && nameSlice[1] == '.'))) {
