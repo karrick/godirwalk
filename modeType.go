@@ -16,7 +16,7 @@ import (
 func modeType(osPathname string) (os.FileMode, error) {
 	fi, err := os.Lstat(osPathname)
 	if err == nil {
-		return fi.Mode() & os.ModeType, nil
+		return fi.Mode(), nil
 	}
 	return 0, err
 }
