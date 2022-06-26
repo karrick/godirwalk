@@ -360,7 +360,9 @@ func walk(osPathname string, dirent *Dirent, options *Options) error {
 		// continue processing remaining siblings
 	}
 	if err = ds.Err(); err != nil {
-		return err
+		if err.Error() != "EOF" {
+			return err
+		}
 	}
 
 	if options.PostChildrenCallback == nil {
