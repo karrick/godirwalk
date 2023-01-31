@@ -133,6 +133,11 @@ func (s *Scanner) Scan() bool {
 
 	fileinfos, err := s.dh.Readdir(1)
 	if err != nil {
+		// Readdir returns io.EOF at the end of a directory
+		if err == io.EOF {
+			s.done(nil)
+			return false
+		}
 		s.done(err)
 		return false
 	}
