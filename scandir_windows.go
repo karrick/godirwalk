@@ -5,6 +5,7 @@ package godirwalk
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
