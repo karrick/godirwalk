@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package godirwalk
@@ -72,7 +73,7 @@ func readDirents(osDirname string, scratchBuffer []byte) ([]*Dirent, error) {
 			_ = dh.Close()
 			return nil, err
 		}
-		entries = append(entries, &Dirent{name: childName, path: osDirname, modeType: mt})
+		entries = append(entries, &Dirent{name: childName, path: osDirname, modeType: mt, inode: sde.Ino})
 	}
 }
 
