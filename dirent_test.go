@@ -18,6 +18,14 @@ func TestDirent(t *testing.T) {
 			t.Errorf("GOT: %v; WANT: %v", got, want)
 		}
 
+		if got, want := de.Dir(), filepath.Join(scaffolingRoot, "d0"); got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+
+		if got, want := (*de).Dir(), filepath.Join(scaffolingRoot, "d0"); got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+
 		if got, want := de.ModeType(), os.FileMode(0); got != want {
 			t.Errorf("GOT: %v; WANT: %v", got, want)
 		}
@@ -47,6 +55,10 @@ func TestDirent(t *testing.T) {
 		ensureError(t, err)
 
 		if got, want := de.Name(), "d0"; got != want {
+			t.Errorf("GOT: %v; WANT: %v", got, want)
+		}
+
+		if got, want := de.Dir(), scaffolingRoot; got != want {
 			t.Errorf("GOT: %v; WANT: %v", got, want)
 		}
 
@@ -83,6 +95,10 @@ func TestDirent(t *testing.T) {
 				t.Errorf("GOT: %v; WANT: %v", got, want)
 			}
 
+			if got, want := de.Dir(), filepath.Join(scaffolingRoot, "d0", "symlinks"); got != want {
+				t.Errorf("GOT: %v; WANT: %v", got, want)
+			}
+
 			if got, want := de.ModeType(), os.ModeSymlink; got != want {
 				t.Errorf("GOT: %v; WANT: %v", got, want)
 			}
@@ -112,6 +128,10 @@ func TestDirent(t *testing.T) {
 			ensureError(t, err)
 
 			if got, want := de.Name(), "toD1"; got != want {
+				t.Errorf("GOT: %v; WANT: %v", got, want)
+			}
+
+			if got, want := de.Dir(), filepath.Join(scaffolingRoot, "d0", "symlinks"); got != want {
 				t.Errorf("GOT: %v; WANT: %v", got, want)
 			}
 

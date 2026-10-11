@@ -79,6 +79,9 @@ func (de Dirent) IsDevice() bool { return de.modeType&os.ModeDevice != 0 }
 //    information about files can be moved from one system to another portably.
 func (de Dirent) ModeType() os.FileMode { return de.modeType }
 
+// Dir returns the directory path of the file system entry.
+func (de Dirent) Dir() string { return de.path }
+
 // Name returns the base name of the file system entry.
 func (de Dirent) Name() string { return de.name }
 

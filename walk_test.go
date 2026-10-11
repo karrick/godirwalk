@@ -312,6 +312,55 @@ func TestPostChildrenCallback(t *testing.T) {
 	ensureStringSlicesMatch(t, actual, expected)
 }
 
+func TestWalkDirentDir(t *testing.T) {
+	t.Run("sorted", func(t *testing.T) {
+		var count int
+		err := Walk(filepath.Join(scaffolingRoot, "d0"), &Options{
+			Callback: func(osPathname string, dirent *Dirent) error {
+				count++
+				if got, want := dirent.Dir(), filepath.Dir(osPathname); got != want {
+					t.Errorf("GOT: %v; WANT: %v", got, want)
+				}
+				if got, want := filepath.Join(dirent.Dir(), dirent.Name()), osPathname; got != want {
+					t.Errorf("GOT: %v; WANT: %v", got, want)
+				}
+				return nil
+			},
+			PostChildrenCallback: func(osPathname string, dirent *Dirent) error {
+				if got, want := dirent.Dir(), filepath.Dir(osPathname); got != want {
+					t.Errorf("GOT: %v; WANT: %v", got, want)
+				}
+				return nil
+			},
+		})
+		ensureError(t, err)
+		if count == 0 {
+			t.Errorf("expected visited entries, got 0")
+		}
+	})
+
+	t.Run("unsorted", func(t *testing.T) {
+		var count int
+		err := Walk(filepath.Join(scaffolingRoot, "d0"), &Options{
+			Unsorted: true,
+			Callback: func(osPathname string, dirent *Dirent) error {
+				count++
+				if got, want := dirent.Dir(), filepath.Dir(osPathname); got != want {
+					t.Errorf("GOT: %v; WANT: %v", got, want)
+				}
+				if got, want := filepath.Join(dirent.Dir(), dirent.Name()), osPathname; got != want {
+					t.Errorf("GOT: %v; WANT: %v", got, want)
+				}
+				return nil
+			},
+		})
+		ensureError(t, err)
+		if count == 0 {
+			t.Errorf("expected visited entries, got 0")
+		}
+	})
+}
+
 const flameIterations = 10
 
 var goPrefix = filepath.Join(os.Getenv("GOPATH"), "src")
