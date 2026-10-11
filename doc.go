@@ -38,5 +38,17 @@ directory, typically much more quickly than using `os.ReadDir` or
 
     entries, err := godirwalk.ReadDirents("another/directory", scratchBuffer)
     // ...
+
+This library also provides WalkParents to traverse parent directories upward
+towards the filesystem root until a specified condition is met, such as locating
+a project root directory.
+
+    err := godirwalk.WalkParents("some/sub/dir", func(dir string) (bool, error) {
+        if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+            fmt.Printf("found repository root at: %s\n", dir)
+            return true, nil
+        }
+        return false, nil
+    })
 */
 package godirwalk

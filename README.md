@@ -48,6 +48,19 @@ directory tree, but also for obtaining a list of immediate descendants
 of a particular directory, typically much more quickly than using
 `os.ReadDir` or `os.ReadDirnames`.
 
+It also provides `WalkParents` to walk upward through ancestor
+directories towards the filesystem root until a condition is met:
+
+```Go
+    err := godirwalk.WalkParents("some/sub/dir", func(dir string) (bool, error) {
+        if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+            fmt.Printf("found repository root at: %s\n", dir)
+            return true, nil
+        }
+        return false, nil
+    })
+```
+
 ## Description
 
 Here's why I use `godirwalk` in preference to `filepath.Walk`,
